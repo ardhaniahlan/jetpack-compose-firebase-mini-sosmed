@@ -1,6 +1,9 @@
 package org.apps.minisosmed.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.userProfileChangeRequest
 import kotlinx.coroutines.tasks.await
@@ -31,11 +34,32 @@ class AuthRepositoryImpl (
             } else{
                 Result.failure(Exception("User null"))
             }
-        } catch (e: Exception){
-            Result.failure(e)
+        } catch (e: FirebaseAuthUserCollisionException) {
+            Result.failure(Exception("Email sudah terdaftar"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Gagal mendaftar, coba lagi"))
         }
     }
 
+    override suspend fun login(
+        email: String,
+        password: String,
+    ): Result<User> {
+        return try {
+            val authResult = firebaseAuth
+                .signInWithEmailAndPassword(email, password)
+                .await()
+
+            val firebaseUser = authResult.user?.toUser()
+            if (firebaseUser != null) Result.success(firebaseUser) else Result.failure(Exception("User null"))
+        } catch (e: FirebaseAuthInvalidUserException) {
+            Result.failure(Exception("Email tidak terdaftar"))
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Result.failure(Exception("Password salah"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Terjadi kesalahan, coba lagi"))
+        }
+    }
 
     fun FirebaseUser.toUser(): User {
         return User(

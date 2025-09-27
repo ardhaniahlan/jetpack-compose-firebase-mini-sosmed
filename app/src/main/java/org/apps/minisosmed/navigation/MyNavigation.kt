@@ -7,6 +7,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import org.apps.minisosmed.screen.HomeScreen
+import org.apps.minisosmed.screen.LoginScreen
 import org.apps.minisosmed.screen.RegisterScreen
 import org.apps.minisosmed.viewmodel.AuthViewModel
 
@@ -20,10 +22,16 @@ fun MyNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = "register",
+        startDestination = "login",
         builder = {
+            composable("login"){
+                LoginScreen(navController, authViewModel, modifier, snackbarHostState)
+            }
             composable("register"){
                 RegisterScreen(navController, authViewModel, modifier, snackbarHostState)
+            }
+            composable("home"){
+                HomeScreen(navController)
             }
         }
     )

@@ -47,30 +47,27 @@ import org.apps.minisosmed.ui.theme.poppinsFontFamily
 import org.apps.minisosmed.viewmodel.AuthViewModel
 
 @Composable
-fun RegisterScreen(
+fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState
-) {
+){
     val uiState by authViewModel.uiState
 
     Box(
         modifier = modifier.fillMaxSize()
-    ) {
-
-        RegisterScreenContent(
+    ){
+        LoginScreenContent(
             uiState = uiState,
-            onDisplayNameChange = authViewModel::onDisplayNameChange,
             onEmailChange = authViewModel::onEmailChange,
             onPasswordChange = authViewModel::onPasswordChange,
-            onConfirmPasswordChange = authViewModel::onConfirmPasswordChange,
             onVisibilityChange = authViewModel::togglePasswordVisibility,
-            onCreateAccountClick = { authViewModel.register() },
-            onLoginClick = {
+            onLoginAccountClick = { authViewModel.login() },
+            onRegisterClick = {
                 authViewModel.clearForm()
-                navController.navigate("login") {
-                    popUpTo("register") { inclusive = true }
+                navController.navigate("register") {
+                    popUpTo("login") { inclusive = true }
                 }
             }
         )
@@ -96,8 +93,8 @@ fun RegisterScreen(
                     actionLabel = "OK"
                 )
 
-                navController.navigate("login") {
-                    popUpTo("register") { inclusive = true }
+                navController.navigate("home") {
+                    popUpTo("login") { inclusive = true }
                 }
             }
 
@@ -119,21 +116,28 @@ fun RegisterScreen(
 }
 
 @Composable
-fun RegisterScreenContent(
+fun LoginScreenContent(
     uiState: AuthUiState,
-    onDisplayNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onConfirmPasswordChange: (String) -> Unit,
-    onVisibilityChange: () -> Unit,
-    onCreateAccountClick: () -> Unit,
-    onLoginClick: () -> Unit
-){
+    onVisibilityChange : () -> Unit,
+    onLoginAccountClick: () -> Unit,
+    onRegisterClick: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
+        Text(
+            text = "Mini Sosmed",
+            fontSize = 32.sp,
+            fontFamily = poppinsFontFamily,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 60.dp)
+        )
 
         Column(
             modifier = Modifier
@@ -143,40 +147,21 @@ fun RegisterScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Buat Akun",
+                text = "Login Akun",
                 fontSize = 20.sp,
                 fontFamily = poppinsFontFamily,
                 fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.End
             )
 
             Text(
-                text = "Daftarkan akunmu pada Mini Sosmed",
+                text = "Masuk untuk menemukan inspirasi dan bagikan momen terbaikmu",
                 fontSize = 12.sp,
                 fontFamily = poppinsFontFamily,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            // Display Name
-            OutlinedTextField(
-                value = uiState.displayName,
-                onValueChange = onDisplayNameChange,
-                label = { Text("Display Name") },
-                isError = uiState.displayNameError != null,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            )
-            uiState.displayNameError?.let {
-                Text(it, color = Color.Red, fontSize = 12.sp)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Email
             OutlinedTextField(
@@ -226,45 +211,14 @@ fun RegisterScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Confirm Password
-            OutlinedTextField(
-                value = uiState.confirmPassword,
-                onValueChange = onConfirmPasswordChange,
-                label = { Text("Confirm Password") },
-                placeholder = { Text("Confirm Password") },
-                visualTransformation =
-                    if (uiState.passwordVisible) VisualTransformation.None
-                    else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (uiState.passwordVisible) Icons.Default.Visibility
-                    else Icons.Default.VisibilityOff
-
-                    IconButton(onClick = onVisibilityChange) {
-                        Icon(image, contentDescription = null)
-                    }
-                },
-                isError = uiState.confirmPasswordError != null,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Done
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-            )
-            uiState.confirmPasswordError?.let {
-                Text(it, color = Color.Red, fontSize = 12.sp)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onCreateAccountClick
-            ) { Text(text = "Registrasi") }
+                onClick = onLoginAccountClick
+            ) { Text(text = "Login") }
 
             Row {
                 Text(
-                    text = "Sudah punya akun?",
+                    text = "Belum punya akun?",
                     fontSize = 12.sp,
                     fontFamily = poppinsFontFamily,
                     fontWeight = FontWeight.Normal,
@@ -273,12 +227,12 @@ fun RegisterScreenContent(
                 Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
-                    text = "Login",
+                    text = "Register",
                     fontSize = 12.sp,
                     fontFamily = poppinsFontFamily,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable{
-                        onLoginClick()
+                        onRegisterClick()
                     }
                 )
             }
@@ -286,32 +240,23 @@ fun RegisterScreenContent(
     }
 }
 
-
-
-
-//@Preview(showBackground = true)
-//@Composable
-//fun RegisterScreenPreview() {
-//    MiniSosmedTheme {
-//        RegisterScreenContent(
-//            uiState = AuthUiState(
-//                displayName = "Ardhan",
-//                email = "ardhan@gmail.com",
-//                password = "password123",
-//                confirmPassword = "password123",
-//                passwordVisible = false,
-//                displayNameError = null,
-//                emailError = null,
-//                passwordError = null,
-//                confirmPasswordError = null
-//            ),
-//            onEmailChange = {},
-//            onPasswordChange = {},
-//            onCreateAccountClick = {},
-//            onLoginClick = {},
-//            onVisibilityChange = {},
-//            onConfirmPasswordChange = {},
-//            onDisplayNameChange = {}
-//        )
-//    }
-//}
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    MiniSosmedTheme {
+        LoginScreenContent(
+            uiState = AuthUiState(
+                email = "ardhan@gmail.com",
+                password = "password123",
+                passwordVisible = false,
+                emailError = null,
+                passwordError = null,
+            ),
+            onEmailChange = {},
+            onPasswordChange = {},
+            onLoginAccountClick = {},
+            onRegisterClick = {},
+            onVisibilityChange = {},
+        )
+    }
+}

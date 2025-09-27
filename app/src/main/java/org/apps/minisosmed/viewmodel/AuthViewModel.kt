@@ -13,6 +13,25 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
     private val _uiState = mutableStateOf(AuthUiState())
     val uiState: State<AuthUiState> = _uiState
 
+    fun login(){
+        val current = _uiState.value
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            val result = repository.login(current.email, current.password)
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    success = "Login berhasil"
+                )
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    message = it.message
+                )
+            }
+        }
+    }
+
     fun register (){
         val current = _uiState.value
         viewModelScope.launch {
@@ -26,7 +45,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    message = it.message ?: "Register Error"
+                    message = it.message
                 )
             }
         }
@@ -35,7 +54,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
     fun onDisplayNameChange(newDisplayName: String) {
         _uiState.value = _uiState.value.copy(
             displayName = newDisplayName,
-            displayNameError = if (newDisplayName.isBlank() || newDisplayName.length < 3){
+            displayNameError = if (newDisplayName.isNotEmpty() && newDisplayName.length < 3){
                 "Minimal 3 Digit dan tidak boleh Kosong"
             } else null
         )
@@ -71,8 +90,22 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
     fun togglePasswordVisibility() {
         _uiState.value = _uiState.value.copy(passwordVisible = !_uiState.value.passwordVisible)
     }
-}
 
-fun isValidGmail(input: String): Boolean {
-    return Regex("^[A-Za-z0-9+_.-]+@gmail\\.com$").matches(input)
+    fun isValidGmail(input: String): Boolean {
+        return Regex("^[A-Za-z0-9+_.-]+@gmail\\.com$").matches(input)
+    }
+
+    fun clearForm() {
+        _uiState.value = _uiState.value.copy(
+            email = "",
+            password = "",
+            emailError = null,
+            passwordError = null
+        )
+    }
+
+    fun resetUiState() {
+        _uiState.value = AuthUiState()
+    }
+
 }

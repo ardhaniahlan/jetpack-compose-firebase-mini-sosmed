@@ -61,12 +61,20 @@ class AuthRepositoryImpl (
         }
     }
 
-    fun FirebaseUser.toUser(): User {
-        return User(
-            id = uid,
-            email = email ?: "",
-            displayName = displayName ?: "",
-            photoUrl = photoUrl?.toString() ?: ""
-        )
+    override fun getCurrentUser(): User? {
+        return firebaseAuth.currentUser?.toUser()
     }
+
+    override suspend fun logout() {
+        firebaseAuth.signOut()
+    }
+}
+
+fun FirebaseUser.toUser(): User {
+    return User(
+        id = uid,
+        email = email ?: "",
+        displayName = displayName ?: "",
+        photoUrl = photoUrl?.toString() ?: ""
+    )
 }

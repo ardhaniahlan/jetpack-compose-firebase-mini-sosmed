@@ -36,6 +36,7 @@ import org.apps.minisosmed.screen.LoginScreen
 import org.apps.minisosmed.screen.ProfileScreen
 import org.apps.minisosmed.screen.RegisterScreen
 import org.apps.minisosmed.screen.SearchScreen
+import org.apps.minisosmed.screen.SplashScreen
 import org.apps.minisosmed.viewmodel.AuthViewModel
 
 @Composable
@@ -47,13 +48,16 @@ fun MyNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = "login",
+        startDestination = "splash",
         builder = {
             composable("login"){
                 LoginScreen(navController, authViewModel, modifier, snackbarHostState)
             }
             composable("register"){
                 RegisterScreen(navController, authViewModel, modifier, snackbarHostState)
+            }
+            composable("splash"){
+                SplashScreen(navController)
             }
 
             // Bottom Bar
@@ -67,7 +71,7 @@ fun MyNavigation(
                 SearchScreen(navController)
             }
             composable("profile"){
-                ProfileScreen(navController)
+                ProfileScreen(navController, authViewModel, modifier)
             }
         }
     )

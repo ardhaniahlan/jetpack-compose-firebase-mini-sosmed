@@ -240,23 +240,23 @@ fun LoginScreenContent(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    MiniSosmedTheme {
-        LoginScreenContent(
-            uiState = AuthUiState(
-                email = "ardhan@gmail.com",
-                password = "password123",
-                passwordVisible = false,
-                emailError = null,
-                passwordError = null,
-            ),
-            onEmailChange = {},
-            onPasswordChange = {},
-            onLoginAccountClick = {},
-            onRegisterClick = {},
-            onVisibilityChange = {},
-        )
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun LoginScreenPreview() {
+//    MiniSosmedTheme {
+//        LoginScreenContent(
+//            uiState = AuthUiState(
+//                email = "ardhan@gmail.com",
+//                password = "password123",
+//                passwordVisible = false,
+//                emailError = null,
+//                passwordError = null,
+//            ),
+//            onEmailChange = {},
+//            onPasswordChange = {},
+//            onLoginAccountClick = {},
+//            onRegisterClick = {},
+//            onVisibilityChange = {},
+//        )
+//    }
+//}

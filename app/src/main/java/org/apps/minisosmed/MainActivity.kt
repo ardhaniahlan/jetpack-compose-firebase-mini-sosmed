@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import org.apps.minisosmed.di.Injection
+import org.apps.minisosmed.navigation.MyBottomNavBar
 import org.apps.minisosmed.navigation.MyNavigation
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
@@ -27,15 +31,28 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val snackbarHostState = remember { SnackbarHostState() }
+            val navController = rememberNavController()
+
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentDestination = navBackStackEntry?.destination?.route
+
+            val bottomNavRoutes = listOf("home", "addpost", "search", "profile")
+
             MiniSosmedTheme {
                 Scaffold(
+                    bottomBar = {
+                        if (currentDestination in bottomNavRoutes) {
+                            MyBottomNavBar(navController)
+                        }
+                    },
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     MyNavigation(
                         modifier = Modifier.padding(innerPadding),
                         authViewModel = authViewModel,
-                        snackbarHostState = snackbarHostState
+                        snackbarHostState = snackbarHostState,
+                        navController = navController
                     )
                 }
             }

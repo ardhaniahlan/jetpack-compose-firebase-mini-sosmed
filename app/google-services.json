@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "742563621600",
+    "firebase_url": "https://salon-19082-default-rtdb.firebaseio.com",
+    "project_id": "salon-19082",
+    "storage_bucket": "salon-19082.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742563621600:android:fa034d93a1e0f76d1c7e85",
+        "android_client_info": {
+          "package_name": "org.apps.minisosmed"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9xGfXAiCMlxt1vyrxWfgjv40ttA0OTqI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

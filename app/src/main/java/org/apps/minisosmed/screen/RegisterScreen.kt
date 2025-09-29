@@ -164,7 +164,7 @@ fun RegisterScreenContent(
                 value = uiState.displayName,
                 onValueChange = onDisplayNameChange,
                 label = { Text("Display Name") },
-                isError = uiState.displayNameError != null,
+                isError = uiState.message != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -183,7 +183,7 @@ fun RegisterScreenContent(
                 value = uiState.email,
                 onValueChange = onEmailChange,
                 label = { Text("Email") },
-                isError = uiState.emailError != null,
+                isError = uiState.message != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -212,7 +212,7 @@ fun RegisterScreenContent(
                         Icon(image, contentDescription = null)
                     }
                 },
-                isError = uiState.passwordError != null,
+                isError = uiState.message != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -243,7 +243,7 @@ fun RegisterScreenContent(
                         Icon(image, contentDescription = null)
                     }
                 },
-                isError = uiState.confirmPasswordError != null,
+                isError = uiState.message != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done

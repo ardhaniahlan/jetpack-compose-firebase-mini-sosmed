@@ -19,15 +19,22 @@ import org.apps.minisosmed.navigation.MyBottomNavBar
 import org.apps.minisosmed.navigation.MyNavigation
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.UserViewModel
 import org.apps.minisosmed.viewmodel.ViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val authViewModel: AuthViewModel by viewModels {
-            ViewModelFactory(Injection.provideAuthRepository())
-        }
+        val factory = ViewModelFactory(
+            Injection.provideAuthRepository(),
+            Injection.provideUserRepository(),
+            Injection.provideImageRepository()
+        )
+
+        val authViewModel: AuthViewModel by viewModels { factory }
+
+        val userViewModel: UserViewModel by viewModels { factory }
 
         setContent {
             val snackbarHostState = remember { SnackbarHostState() }
@@ -51,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     MyNavigation(
                         modifier = Modifier.padding(innerPadding),
                         authViewModel = authViewModel,
+                        userViewModel = userViewModel,
                         snackbarHostState = snackbarHostState,
                         navController = navController
                     )

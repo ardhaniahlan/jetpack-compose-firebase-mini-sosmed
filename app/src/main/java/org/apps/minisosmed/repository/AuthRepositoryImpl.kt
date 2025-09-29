@@ -61,10 +61,6 @@ class AuthRepositoryImpl (
         }
     }
 
-    override fun getCurrentUser(): User? {
-        return firebaseAuth.currentUser?.toUser()
-    }
-
     override suspend fun logout() {
         firebaseAuth.signOut()
     }

@@ -168,7 +168,7 @@ fun LoginScreenContent(
                 value = uiState.email,
                 onValueChange = onEmailChange,
                 label = { Text("Email") },
-                isError = uiState.emailError != null,
+                isError = uiState.message != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -197,7 +197,7 @@ fun LoginScreenContent(
                         Icon(image, contentDescription = null)
                     }
                 },
-                isError = uiState.passwordError != null,
+                isError = uiState.message != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done

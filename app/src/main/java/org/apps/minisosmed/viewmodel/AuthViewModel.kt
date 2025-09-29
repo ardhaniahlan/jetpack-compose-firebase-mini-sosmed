@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import org.apps.minisosmed.state.AuthUiState
 import org.apps.minisosmed.repository.IAuthRepository
 
-class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
+class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
 
     private val _uiState = mutableStateOf(AuthUiState())
     val uiState: State<AuthUiState> = _uiState
@@ -18,7 +18,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             delay(1500)
-            repository.logout()
+            authRepository.logout()
             _uiState.value = AuthUiState()
         }
     }
@@ -27,7 +27,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
         val current = _uiState.value
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val result = repository.login(current.email, current.password)
+            val result = authRepository.login(current.email, current.password)
             result.onSuccess {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -46,7 +46,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
         val current = _uiState.value
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val result = repository.register(current.email, current.password, current.displayName)
+            val result = authRepository.register(current.email, current.password, current.displayName)
             result.onSuccess {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -65,7 +65,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
         _uiState.value = _uiState.value.copy(
             displayName = newDisplayName,
             displayNameError = if (newDisplayName.isNotEmpty() && newDisplayName.length < 3){
-                "Minimal 3 Digit dan tidak boleh Kosong"
+                "Minimal 3 digit dan tidak boleh Kosong"
             } else null
         )
     }
@@ -82,7 +82,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
     fun onPasswordChange(newPassword: String) {
         _uiState.value = _uiState.value.copy(
             password = newPassword,
-            passwordError = if (newPassword.length < 6) {
+            passwordError = if (newPassword.isNotEmpty() && newPassword.length < 6) {
                 "Password minimal 6 karakter"
             } else null
         )
@@ -91,7 +91,7 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
     fun onConfirmPasswordChange(newConfirm: String) {
         _uiState.value = _uiState.value.copy(
             confirmPassword = newConfirm,
-            confirmPasswordError = if (newConfirm != _uiState.value.password) {
+            confirmPasswordError = if (newConfirm.isNotEmpty() && newConfirm != _uiState.value.password) {
                 "Password tidak sama"
             } else null
         )
@@ -109,13 +109,11 @@ class AuthViewModel(private val repository: IAuthRepository) : ViewModel(){
         _uiState.value = _uiState.value.copy(
             email = "",
             password = "",
-            emailError = null,
-            passwordError = null
+            message = null
         )
     }
 
     fun resetUiState() {
         _uiState.value = AuthUiState()
     }
-
 }

@@ -1,5 +1,6 @@
 package org.apps.minisosmed.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,38 +10,58 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import org.apps.minisosmed.R
+import org.apps.minisosmed.entity.User
+import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.UserViewModel
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
+    userViewModel: UserViewModel,
     modifier: Modifier
 ){
-
     val uiState by authViewModel.uiState
+    val user by userViewModel.user.collectAsState()
+
+    LaunchedEffect(Unit) {
+        userViewModel.refreshUser()
+    }
 
     Box(
         modifier = modifier.fillMaxSize()
     ) {
         ProfileScreenContent(
+            user = user,
             onLogoutClick = {
                 authViewModel.logout()
                 navController.navigate("login") {
@@ -49,6 +70,9 @@ fun ProfileScreen(
                     }
                     launchSingleTop = true
                 }
+            },
+            onEditClick = {
+                navController.navigate("editprofile")
             }
         )
 
@@ -67,13 +91,13 @@ fun ProfileScreen(
 
 @Composable
 fun ProfileScreenContent(
-    onLogoutClick: () -> Unit
+    user: User?,
+    onLogoutClick: () -> Unit,
+    onEditClick: () -> Unit
 ){
-
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -81,11 +105,18 @@ fun ProfileScreenContent(
             horizontalArrangement = Arrangement.End
         ) {
             Text(
+                text = "Profil Saya",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+
+            Text(
                 text = "Edit",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
-                    .clickable{  }
+                    .clickable{ onEditClick() }
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -99,14 +130,84 @@ fun ProfileScreenContent(
                     .clickable{ onLogoutClick() }
             )
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp),
+        ) {
+            Spacer(modifier = Modifier.width(20.dp))
+
+            if (!user?.photoUrl.isNullOrEmpty()) {
+                val bitmap = remember(user.photoUrl) {
+                    user.photoUrl.let { ImageRepository().base64ToBitmap(it) }
+                }
+
+                bitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_background),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column{
+                Text(
+                    text = user?.displayName ?: "Guest",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                Text(
+                    text = user?.email ?: "-",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = user?.bio ?: "-",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            modifier = Modifier.fillMaxWidth().padding( 20.dp),
+            maxLines = 3
+        )
     }
 }
 
 @Composable
 @Preview(showBackground = true)
-fun ProfileScreenContentPreview(){
+fun ProfileScreenContentPreview() {
     MiniSosmedTheme {
-        ProfileScreenContent(onLogoutClick = {})
+        ProfileScreenContent(
+            user = User(
+                id = "1",
+                displayName = "Ardhani Ahlan",
+                email = "ardhan@gmail.com",
+                bio = "Saya ganteng",
+                photoUrl = "https://picsum.photos/200"
+            ),
+            onLogoutClick = {},
+            onEditClick = {}
+        )
     }
 }
+
 

@@ -37,12 +37,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import org.apps.minisosmed.state.AuthUiState
-import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.ui.theme.poppinsFontFamily
 import org.apps.minisosmed.viewmodel.AuthViewModel
 
@@ -115,7 +113,6 @@ fun RegisterScreen(
             authViewModel.resetUiState()
         }
     }
-
 }
 
 @Composable

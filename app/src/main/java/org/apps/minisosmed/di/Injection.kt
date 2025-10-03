@@ -3,8 +3,10 @@ package org.apps.minisosmed.di
 import com.google.firebase.auth.FirebaseAuth
 import org.apps.minisosmed.repository.AuthRepositoryImpl
 import org.apps.minisosmed.repository.IAuthRepository
+import org.apps.minisosmed.repository.IPostRepository
 import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.repository.PostRepositoryImpl
 import org.apps.minisosmed.repository.UserRepositoryImpl
 
 object Injection {
@@ -18,5 +20,9 @@ object Injection {
 
     fun provideImageRepository(): ImageRepository {
         return ImageRepository()
+    }
+
+    fun providePostRepository(): IPostRepository {
+        return PostRepositoryImpl(FirebaseAuth.getInstance())
     }
 }

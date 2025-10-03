@@ -1,9 +1,11 @@
 package org.apps.minisosmed
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -19,22 +21,25 @@ import org.apps.minisosmed.navigation.MyBottomNavBar
 import org.apps.minisosmed.navigation.MyNavigation
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.PostViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
 import org.apps.minisosmed.viewmodel.ViewModelFactory
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val factory = ViewModelFactory(
             Injection.provideAuthRepository(),
             Injection.provideUserRepository(),
-            Injection.provideImageRepository()
+            Injection.providePostRepository(),
+            Injection.provideImageRepository(),
         )
 
         val authViewModel: AuthViewModel by viewModels { factory }
-
         val userViewModel: UserViewModel by viewModels { factory }
+        val postViewModel: PostViewModel by viewModels { factory }
 
         setContent {
             val snackbarHostState = remember { SnackbarHostState() }
@@ -59,6 +64,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         authViewModel = authViewModel,
                         userViewModel = userViewModel,
+                        postViewModel = postViewModel,
                         snackbarHostState = snackbarHostState,
                         navController = navController
                     )

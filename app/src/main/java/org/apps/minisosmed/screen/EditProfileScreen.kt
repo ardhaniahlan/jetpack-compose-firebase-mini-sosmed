@@ -1,5 +1,6 @@
 package org.apps.minisosmed.screen
 
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.UpdateUserUiState
@@ -204,9 +208,12 @@ fun EditProfileScreenContent(
                     )
                 }
                 user?.photoUrl != null -> {
-                    val bitmap = remember(user.photoUrl) {
-                        user?.photoUrl?.let { ImageRepository().base64ToBitmap(it) }
+                    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user.photoUrl) {
+                        value = withContext(Dispatchers.IO) {
+                            user.photoUrl.let { ImageRepository().base64ToBitmap(it) }
+                        }
                     }
+
                     bitmap?.let {
                         Image(
                             bitmap = it.asImageBitmap(),
@@ -251,28 +258,28 @@ fun EditProfileScreenContent(
     }
 }
 
-@Composable
-@Preview(showBackground = true)
-fun EditProfileScreenContentPreview() {
-    MiniSosmedTheme {
-        EditProfileScreenContent(
-            user = User(
-                id = "1",
-                displayName = "Ardhani Ahlan",
-                bio = "Orang Ganteng",
-                email = "ardhan@gmail.com",
-                photoUrl = "https://picsum.photos/200"
-            ),
-            uiState = UpdateUserUiState(
-                displayName = "Ardhani Ahlan",
-                bio = "Orang Ganteng",
-                photoUrl = null
-            ),
-            onDisplayNameChange = {},
-            onBioChange = {},
-            onPickImageClick = {},
-            onBackScreen = {},
-            onSaveEdit = {}
-        )
-    }
-}
+//@Composable
+//@Preview(showBackground = true)
+//fun EditProfileScreenContentPreview() {
+//    MiniSosmedTheme {
+//        EditProfileScreenContent(
+//            user = User(
+//                id = "1",
+//                displayName = "Ardhani Ahlan",
+//                bio = "Orang Ganteng",
+//                email = "ardhan@gmail.com",
+//                photoUrl = "https://picsum.photos/200"
+//            ),
+//            uiState = UpdateUserUiState(
+//                displayName = "Ardhani Ahlan",
+//                bio = "Orang Ganteng",
+//                photoUrl = null
+//            ),
+//            onDisplayNameChange = {},
+//            onBioChange = {},
+//            onPickImageClick = {},
+//            onBackScreen = {},
+//            onSaveEdit = {}
+//        )
+//    }
+//}

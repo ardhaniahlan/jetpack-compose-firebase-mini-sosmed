@@ -55,7 +55,7 @@ class AuthRepositoryImpl (
         } catch (e: FirebaseAuthInvalidUserException) {
             Result.failure(Exception("Email tidak terdaftar"))
         } catch (e: FirebaseAuthInvalidCredentialsException) {
-            Result.failure(Exception("Password salah"))
+            Result.failure(Exception("Email atau Password salah"))
         } catch (e: Exception) {
             Result.failure(Exception("Terjadi kesalahan, coba lagi"))
         }

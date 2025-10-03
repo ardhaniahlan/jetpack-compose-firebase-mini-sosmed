@@ -4,7 +4,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.apps.minisosmed.state.AuthUiState
 import org.apps.minisosmed.repository.IAuthRepository
@@ -17,7 +16,6 @@ class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
     fun logout() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            delay(1500)
             authRepository.logout()
             _uiState.value = AuthUiState()
         }

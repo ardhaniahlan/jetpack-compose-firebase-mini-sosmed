@@ -1,5 +1,7 @@
 package org.apps.minisosmed.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,12 +17,15 @@ import org.apps.minisosmed.screen.RegisterScreen
 import org.apps.minisosmed.screen.SearchScreen
 import org.apps.minisosmed.screen.SplashScreen
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.PostViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MyNavigation(
     authViewModel: AuthViewModel,
     userViewModel: UserViewModel,
+    postViewModel: PostViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState,
     navController: NavHostController
@@ -44,10 +49,10 @@ fun MyNavigation(
 
             // Bottom Bar
             composable("home"){
-                HomeScreen(navController)
+                HomeScreen(navController, postViewModel)
             }
             composable("addpost"){
-                AddPostScreen(navController)
+                AddPostScreen(navController, postViewModel, modifier, snackbarHostState)
             }
             composable("search"){
                 SearchScreen(navController)

@@ -10,9 +10,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.util.CoilUtils.result
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
@@ -73,8 +75,10 @@ class UserViewModel (
             _uiState.value = currentState.copy(isLoading = true)
 
             try {
-                val photoBase64 = currentState.photoUrl?.let { uri ->
-                    imageRepository.uriToBase64(context, uri)
+                val photoBase64 = withContext(Dispatchers.IO) {
+                    currentState.photoUrl?.let { uri ->
+                        imageRepository.uriToBase64(context, uri)
+                    }
                 }
 
                 val result = userRepository.updateProfile(
@@ -88,7 +92,7 @@ class UserViewModel (
                     _uiState.value = UpdateUserUiState(
                         displayName = updatedUser.displayName,
                         bio = updatedUser.bio,
-                        photoUrl = null, // Reset photoUrl after successful upload
+                        photoUrl = null,
                         success = "Profil berhasil diupdate",
                         isLoading = false
                     )

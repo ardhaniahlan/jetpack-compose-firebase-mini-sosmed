@@ -29,8 +29,8 @@ class ImageRepository {
         }
     }
 
-    fun base64ToBitmap(base64String: String): Bitmap? {
-        return try {
+    suspend fun base64ToBitmap(base64String: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
             val bytes = Base64.decode(base64String, Base64.DEFAULT)
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         } catch (e: Exception) {

@@ -5,6 +5,7 @@ import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.User
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import org.apps.minisosmed.entity.Post
 
 class UserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
@@ -61,6 +62,19 @@ class UserRepositoryImpl(
             }
         } catch (e: Exception){
             null
+        }
+    }
+
+    override suspend fun getUserById(userId: String): Result<User> {
+        return try {
+            val snapshot = firestore.collection("users")
+                .document(userId)
+                .get().await()
+            val user = snapshot.toObject(User::class.java)
+            if (user != null) Result.success(user)
+            else Result.failure(Exception("User tidak ditemukan"))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

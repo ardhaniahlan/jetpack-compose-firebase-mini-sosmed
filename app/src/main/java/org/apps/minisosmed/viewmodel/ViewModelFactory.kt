@@ -22,7 +22,7 @@ class ViewModelFactory(
                 UserViewModel(userRepository, imageRepository) as T
 
             modelClass.isAssignableFrom(PostViewModel::class.java) ->
-                PostViewModel(postRepository, imageRepository) as T
+                PostViewModel(postRepository, userRepository, imageRepository) as T
 
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

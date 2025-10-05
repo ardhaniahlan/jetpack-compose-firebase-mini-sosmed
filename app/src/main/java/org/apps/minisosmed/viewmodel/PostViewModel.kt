@@ -13,14 +13,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apps.minisosmed.entity.PostWithUser
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IPostRepository
+import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
-import org.apps.minisosmed.state.AuthUiState
 import org.apps.minisosmed.state.PostUiState
 
 class PostViewModel(
     private val postRepository: IPostRepository,
+    private val userRepository: IUserRepository,
     private val imageRepository: ImageRepository
 ): ViewModel() {
 
@@ -30,17 +32,24 @@ class PostViewModel(
     private val _uiState = mutableStateOf(PostUiState())
     val uiState: State<PostUiState> = _uiState
 
-    fun loadPost(){
+    fun loadPost() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-
             postRepository.getAllPost()
-                .onSuccess {
+                .onSuccess { posts ->
+                    val enrichedPosts = posts.mapNotNull { post ->
+                        val userResult = userRepository.getUserById(post.userId ?: return@mapNotNull null)
+                        userResult.getOrNull()?.let { user ->
+                            PostWithUser(post, user)
+                        }
+                    }
+
                     _uiState.value = _uiState.value.copy(
-                        posts = it,
+                        postsWithUser = enrichedPosts,
                         isLoading = false
                     )
-                }.onFailure {
+                }
+                .onFailure {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         message = "Terjadi kesalahan: ${it.message}"
@@ -48,6 +57,25 @@ class PostViewModel(
                 }
         }
     }
+
+
+//    fun loadPost(){
+//        viewModelScope.launch {
+//            _uiState.value = _uiState.value.copy(isLoading = true)
+//            postRepository.getAllPost()
+//                .onSuccess {
+//                    _uiState.value = _uiState.value.copy(
+//                        posts = it,
+//                        isLoading = false
+//                    )
+//                }.onFailure {
+//                    _uiState.value = _uiState.value.copy(
+//                        isLoading = false,
+//                        message = "Terjadi kesalahan: ${it.message}"
+//                    )
+//                }
+//        }
+//    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun createPost(context: Context){

@@ -16,7 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,35 +39,37 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.Post
+import org.apps.minisosmed.entity.PostWithUser
+import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.formatTimestamp
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.viewmodel.PostViewModel
+import org.apps.minisosmed.viewmodel.UserViewModel
 
 @Composable
 fun HomeScreen(
     navController: NavController,
-    postViewModel: PostViewModel
+    postViewModel: PostViewModel,
 ) {
     val uiState by postViewModel.uiState
-
 
     LaunchedEffect(Unit) {
         postViewModel.loadPost()
     }
 
     HomeScreenContent(
-        posts = uiState.posts,
+        postsWithUser = uiState.postsWithUser,
         isLoading = uiState.isLoading,
-        errorMessage = uiState.message
+        errorMessage = uiState.message,
     )
 }
 
 
 @Composable
 fun HomeScreenContent(
-    posts: List<Post>,
+    postsWithUser: List<PostWithUser>,
     isLoading: Boolean,
-    errorMessage: String?
+    errorMessage: String?,
 ) {
 
     Column(
@@ -94,15 +99,18 @@ fun HomeScreenContent(
                     Text(text = "Error: $errorMessage", color = Color.Red)
                 }
             }
-            posts.isEmpty() -> {
+            postsWithUser.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Belum ada post")
                 }
             }
             else -> {
                 LazyColumn {
-                    items(posts) { post ->
-                        PostItem(post)
+                    items(postsWithUser) { item ->
+                        PostItem(
+                            user = item.user,
+                            post = item.post
+                        )
                     }
                 }
             }
@@ -111,25 +119,26 @@ fun HomeScreenContent(
 }
 
 @Composable
-fun PostItem(post: Post) {
+fun PostItem(
+    user: User,
+    post: Post
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
     ) {
-        // ==== HEADER ====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            post.photoProfile?.let { base64 ->
-                val bitmap by produceState<Bitmap?>(initialValue = null, key1 = post.photoProfile) {
+            user.photoUrl?.let { base64 ->
+                val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user.photoUrl) {
                     value = withContext(Dispatchers.IO) {
-                        post.photoProfile.let { ImageRepository().base64ToBitmap(it) }
+                        user.photoUrl.let { ImageRepository().base64ToBitmap(it) }
                     }
                 }
-
 
                 bitmap?.let {
                     Image(
@@ -146,7 +155,7 @@ fun PostItem(post: Post) {
 
             Column {
                 Text(
-                    text = post.displayName ?: "Unknown",
+                    text = user.displayName ?: "Unknown",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
@@ -154,6 +163,11 @@ fun PostItem(post: Post) {
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
                 )
             }
+
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Menu"
+            )
         }
 
         post.photoUrl?.let { base64 ->

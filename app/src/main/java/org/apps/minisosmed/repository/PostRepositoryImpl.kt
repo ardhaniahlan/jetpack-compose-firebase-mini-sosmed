@@ -18,26 +18,12 @@ class PostRepositoryImpl(
             val user  = firebaseAuth.currentUser ?: return Result.failure(Exception("User Belum Login"))
             val userId = user.uid
 
-            val userDoc = firestore.collection("users")
-                .document(userId)
-                .get()
-                .await()
-
-            if (!userDoc.exists()) {
-                return Result.failure(Exception("User profile tidak ditemukan"))
-            }
-
-            val displayName = userDoc.getString("displayName") ?: "Anonymous"
-            val photoProfile = userDoc.getString("photoUrl")
-
             val postId = firestore.collection("posts").document().id
             val post = Post(
                 id = postId,
-                userId = user.uid,
+                userId = userId,
                 description = description,
                 photoUrl = photoUri,
-                displayName = displayName,
-                photoProfile = photoProfile,
                 createdAt = System.currentTimeMillis()
             )
 

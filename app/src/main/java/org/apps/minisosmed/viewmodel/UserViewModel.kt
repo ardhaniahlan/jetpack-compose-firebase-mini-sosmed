@@ -38,25 +38,26 @@ class UserViewModel (
     fun refreshUser() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            try {
-                val currentUser = userRepository.getCurrentUser()
-                _user.value = currentUser
-                currentUser?.let {
+
+            userRepository.getCurrentUser()
+                .onSuccess { user ->
+                    _user.value = user
                     _uiState.value = UpdateUserUiState(
-                        displayName = it.displayName ?: "",
-                        bio = it.bio ?: "",
+                        displayName = user.displayName ?: "",
+                        bio = user.bio ?: "",
                         photoUrl = null,
                         isLoading = false
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = "Gagal memuat data user: ${e.message}"
-                )
-            }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        message = "Gagal memuat data user: ${e.message}"
+                    )
+                }
         }
     }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun updateProfile(context: Context) {

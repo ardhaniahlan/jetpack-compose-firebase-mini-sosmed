@@ -49,7 +49,7 @@ fun MyNavigation(
 
             // Bottom Bar
             composable("home"){
-                HomeScreen(navController, postViewModel)
+                HomeScreen(navController, postViewModel, modifier, snackbarHostState)
             }
             composable("addpost"){
                 AddPostScreen(navController, postViewModel, modifier, snackbarHostState)

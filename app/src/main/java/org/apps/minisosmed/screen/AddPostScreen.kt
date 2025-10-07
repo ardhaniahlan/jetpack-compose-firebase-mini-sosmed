@@ -93,6 +93,8 @@ fun AddPostScreen(
                     actionLabel = "OK"
                 )
 
+                postViewModel.clearMessage()
+
                 navController.navigate("home") {
                     popUpTo("addpost") { inclusive = true }
                     launchSingleTop = true
@@ -104,13 +106,8 @@ fun AddPostScreen(
                     message = uiState.message!!,
                     duration = SnackbarDuration.Short
                 )
+                postViewModel.clearMessage()
             }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            postViewModel.resetUiState()
         }
     }
 }

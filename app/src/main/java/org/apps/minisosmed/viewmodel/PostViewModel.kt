@@ -32,6 +32,16 @@ class PostViewModel(
     private val _uiState = mutableStateOf(PostUiState())
     val uiState: State<PostUiState> = _uiState
 
+    fun loadCurrentUser() {
+        viewModelScope.launch {
+            userRepository.getCurrentUser()
+                .onSuccess { _user.value = it }
+                .onFailure { _uiState.value = _uiState.value.copy(message = "Gagal memuat user: ${it.message}") }
+        }
+
+    }
+
+
     fun loadPost() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -58,24 +68,24 @@ class PostViewModel(
         }
     }
 
+    fun deletePost(postId: String) {
+        viewModelScope.launch {
+            val result = postRepository.deletePost(postId)
+            if (result.isSuccess) {
+                val updatedList = _uiState.value.postsWithUser.filterNot { it.post.id == postId }
+                _uiState.value = _uiState.value.copy(
+                    postsWithUser = updatedList,
+                    success = "Post berhasil dihapus"
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    message = "Gagal menghapus post: ${result.exceptionOrNull()?.message}"
+                )
+            }
+        }
+    }
 
-//    fun loadPost(){
-//        viewModelScope.launch {
-//            _uiState.value = _uiState.value.copy(isLoading = true)
-//            postRepository.getAllPost()
-//                .onSuccess {
-//                    _uiState.value = _uiState.value.copy(
-//                        posts = it,
-//                        isLoading = false
-//                    )
-//                }.onFailure {
-//                    _uiState.value = _uiState.value.copy(
-//                        isLoading = false,
-//                        message = "Terjadi kesalahan: ${it.message}"
-//                    )
-//                }
-//        }
-//    }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun createPost(context: Context){
@@ -134,8 +144,10 @@ class PostViewModel(
         )
     }
 
-    fun resetUiState() {
-        _uiState.value = PostUiState()
+    fun clearMessage() {
+        _uiState.value = _uiState.value.copy(
+            message = null,
+            success = null
+        )
     }
-
 }

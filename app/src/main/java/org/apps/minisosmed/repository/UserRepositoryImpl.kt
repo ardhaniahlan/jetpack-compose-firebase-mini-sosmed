@@ -33,35 +33,38 @@ class UserRepositoryImpl(
                 .set(userMap, SetOptions.merge())
                 .await()
 
-            val updatedUser = getCurrentUser()
-            updatedUser?.let {
-                Result.success(it)
-            } ?: Result.failure(Exception("Gagal mengambil data user terbaru"))
+            val updatedResult = getCurrentUser()
+            updatedResult.fold(
+                onSuccess = { Result.success(it) },
+                onFailure = { Result.failure(Exception("Gagal mengambil data user terbaru: ${it.message}")) }
+            )
         } catch (e: Exception){
             Result.failure(e)
         }
     }
 
-    override suspend fun getCurrentUser(): User? {
-        val currentUser = firebaseAuth.currentUser ?: return null
+    override suspend fun getCurrentUser(): Result<User> {
+        val currentUser = firebaseAuth.currentUser
+            ?: return Result.failure(Exception("User belum login"))
+
         return try {
             val document = firestore.collection("users")
                 .document(currentUser.uid)
-                .get().await()
+                .get()
+                .await()
 
-            if (document.exists()){
-                document.toObject(User::class.java)
-            } else {
-                User(
+            val user = document.toObject(User::class.java)?.copy(id = document.id)
+                ?: User(
                     id = currentUser.uid,
                     displayName = currentUser.displayName,
                     email = currentUser.email,
                     photoUrl = currentUser.photoUrl?.toString(),
                     bio = null
                 )
-            }
-        } catch (e: Exception){
-            null
+
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

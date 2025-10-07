@@ -47,4 +47,27 @@ class PostRepositoryImpl(
         }
     }
 
+    override suspend fun deletePost(postId: String): Result<Unit> {
+        val currentUser = firebaseAuth.currentUser ?: return Result.failure(Exception("User belum login"))
+
+        return try {
+            val postRef = firestore.collection("posts").document(postId)
+            val snapshot = postRef.get().await()
+
+            if (!snapshot.exists()){
+                return Result.failure(Exception("Post tidak ditemukan"))
+            }
+
+            val postUserId = snapshot.getString("userId")
+            if (postUserId != currentUser.uid){
+                return Result.failure(Exception("Tidak punya izin untuk menghapus post ini"))
+            }
+            postRef.delete().await()
+
+            Result.success(Unit)
+        } catch (e: Exception){
+            Result.failure(e)
+        }
+    }
+
 }

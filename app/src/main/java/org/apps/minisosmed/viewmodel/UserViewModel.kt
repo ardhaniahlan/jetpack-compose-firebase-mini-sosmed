@@ -3,13 +3,11 @@ package org.apps.minisosmed.viewmodel
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.util.Log.e
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.util.CoilUtils.result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +17,6 @@ import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.UpdateUserUiState
-import java.util.Base64
 
 class UserViewModel (
     private  val userRepository: IUserRepository,

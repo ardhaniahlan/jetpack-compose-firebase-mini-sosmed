@@ -5,7 +5,6 @@ import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.User
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import org.apps.minisosmed.entity.Post
 
 class UserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,

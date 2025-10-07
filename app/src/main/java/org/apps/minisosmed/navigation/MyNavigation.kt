@@ -4,10 +4,13 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import org.apps.minisosmed.screen.AddPostScreen
 import org.apps.minisosmed.screen.EditProfileScreen
 import org.apps.minisosmed.screen.HomeScreen
@@ -59,6 +62,36 @@ fun MyNavigation(
             }
             composable("profile"){
                 ProfileScreen(navController, authViewModel, userViewModel, modifier)
+            }
+
+            // Nav bawa Data
+            composable(
+                route = "addpost?postId={postId}",
+                arguments = listOf(
+                    navArgument("postId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getString("postId")
+
+                LaunchedEffect(postId) {
+                    if (postId != null) {
+                        val post = postViewModel.uiState.value.postsWithUser.find { it.post.id == postId }?.post
+                        post?.let { postViewModel.startEditPost(it) }
+                    } else {
+                        postViewModel.finishEditing()
+                    }
+                }
+
+                AddPostScreen(
+                    navController = navController,
+                    postViewModel = postViewModel,
+                    modifier = modifier,
+                    snackbarHostState = snackbarHostState
+                )
             }
         }
     )

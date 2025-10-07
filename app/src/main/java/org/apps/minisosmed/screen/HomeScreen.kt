@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -53,9 +52,7 @@ import org.apps.minisosmed.entity.PostWithUser
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.formatTimestamp
 import org.apps.minisosmed.repository.ImageRepository
-import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.PostViewModel
-import org.apps.minisosmed.viewmodel.UserViewModel
 
 @Composable
 fun HomeScreen(
@@ -100,7 +97,8 @@ fun HomeScreen(
         currentUserId = currentUser?.id,
         onDeletePost = { postId ->
             postViewModel.deletePost(postId)
-        }
+        },
+        navController = navController
     )
 }
 
@@ -111,7 +109,8 @@ fun HomeScreenContent(
     isLoading: Boolean,
     errorMessage: String?,
     currentUserId: String?,
-    onDeletePost: (String) -> Unit
+    onDeletePost: (String) -> Unit,
+    navController: NavController
 ) {
 
     Column(
@@ -153,6 +152,10 @@ fun HomeScreenContent(
                             user = item.user,
                             post = item.post,
                             isOwner = item.post.userId == currentUserId,
+                            onEditPost = { post ->
+                                // Kirim ke AddPostScreen dalam mode edit
+                                navController.navigate("addpost?postId=${post.id}")
+                            },
                             onDeleteClick = onDeletePost
                         )
                     }
@@ -167,6 +170,7 @@ fun PostItem(
     user: User,
     post: Post,
     isOwner: Boolean,
+    onEditPost: (Post) -> Unit,
     onDeleteClick: (String) -> Unit
 ) {
 
@@ -226,7 +230,14 @@ fun PostItem(
                         onDismissRequest = { expanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Hapus") },
+                            text = { Text("Edit") },
+                            onClick = {
+                                expanded = false
+                                onEditPost(post)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = "Hapus", color = Color.Red) },
                             onClick = {
                                 expanded = false
                                 onDeleteClick(post.id)

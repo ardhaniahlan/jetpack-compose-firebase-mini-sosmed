@@ -13,17 +13,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apps.minisosmed.entity.Post
+import org.apps.minisosmed.entity.PostMode
 import org.apps.minisosmed.entity.PostWithUser
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IPostRepository
 import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
+import androidx.core.net.toUri
 
 class PostViewModel(
     private val postRepository: IPostRepository,
     private val userRepository: IUserRepository,
-    private val imageRepository: ImageRepository
+    private val imageRepository: ImageRepository,
 ): ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -67,6 +70,67 @@ class PostViewModel(
                 }
         }
     }
+
+    fun startEditPost(post: Post) {
+        val photoUriForUi: Uri? = post.photoUrl?.let { photoStr ->
+            val normalized = if (photoStr.startsWith("data:")) {
+                photoStr
+            } else {
+                "data:image/jpeg;base64,$photoStr"
+            }
+            normalized.toUri()
+        }
+
+        _uiState.value = _uiState.value.copy(
+            mode = PostMode.EDIT,
+            postBeingEditedId = post.id,
+            description = post.description ?: "",
+            photoUrl = photoUriForUi
+        )
+    }
+
+    fun updatePost() {
+        val current = _uiState.value
+        val postId = current.postBeingEditedId ?: return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val result = postRepository.updatePost(
+                    postId = postId,
+                    newDescription = current.description ?: ""
+                )
+
+                result.onSuccess {
+                    val updatedList = _uiState.value.postsWithUser.map {
+                        if (it.post.id == postId)
+                            it.copy(post = it.post.copy(description = current.description))
+                        else it
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        mode = PostMode.EDIT,
+                        postBeingEditedId = null,
+                        success = "Post berhasil diperbarui",
+                        postsWithUser = updatedList
+                    )
+                }.onFailure {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        message = "Gagal memperbarui post: ${it.message}"
+                    )
+                }
+
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    message = "Terjadi kesalahan: ${e.message}"
+                )
+            }
+        }
+    }
+
 
     fun deletePost(postId: String) {
         viewModelScope.launch {
@@ -149,5 +213,9 @@ class PostViewModel(
             message = null,
             success = null
         )
+    }
+
+    fun finishEditing() {
+        _uiState.value = PostUiState()
     }
 }

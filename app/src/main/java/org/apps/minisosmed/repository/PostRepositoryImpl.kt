@@ -70,4 +70,19 @@ class PostRepositoryImpl(
         }
     }
 
+    override suspend fun updatePost(
+        postId: String,
+        newDescription: String,
+    ): Result<Unit> {
+        return try {
+            firestore.collection("posts")
+                .document(postId)
+                .update("description", newDescription)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 }

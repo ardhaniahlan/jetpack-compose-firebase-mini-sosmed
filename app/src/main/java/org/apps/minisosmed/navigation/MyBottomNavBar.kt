@@ -50,7 +50,7 @@ fun MyBottomNavBar(navController: NavController){
         ) {
             items.forEach { (route, icon, label) ->
                 NavigationBarItem(
-                    selected = currentDestination == route,
+                    selected = currentDestination?.startsWith(route) == true,
                     onClick = {
                         navController.navigate(route){
                             popUpTo(navController.graph.findStartDestination().id){

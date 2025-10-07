@@ -1,10 +1,12 @@
 package org.apps.minisosmed.screen
 
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,12 +29,13 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.apps.minisosmed.entity.PostMode
+import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.PostViewModel
@@ -68,7 +75,14 @@ fun AddPostScreen(
             uiState = uiState,
             onDescriptionChange = postViewModel::onDescriptionChange,
             onPickImageClick = { imagePickerLauncher.launch("image/*") },
-            onSavePost = { postViewModel.createPost(context) },
+            onSavePost = {
+                if (uiState.mode == PostMode.EDIT) {
+                    postViewModel.updatePost()
+                } else {
+                    postViewModel.createPost(context)
+                }
+                postViewModel.finishEditing()
+            },
             onResetPost = { postViewModel.clearForm() }
         )
 
@@ -94,6 +108,7 @@ fun AddPostScreen(
                 )
 
                 postViewModel.clearMessage()
+                postViewModel.finishEditing()
 
                 navController.navigate("home") {
                     popUpTo("addpost") { inclusive = true }
@@ -118,8 +133,10 @@ fun AddPostScreenContent(
     onDescriptionChange: (String) -> Unit,
     onPickImageClick: () -> Unit,
     onResetPost: () -> Unit,
-    onSavePost: () -> Unit
+    onSavePost: () -> Unit,
 ){
+    val isEditMode = uiState.mode == PostMode.EDIT
+
     Row(
         modifier = Modifier.fillMaxWidth()
             .padding( 20.dp),
@@ -127,11 +144,10 @@ fun AddPostScreenContent(
     ) {
 
         Text(
-            text = "Edit Profil",
+            text = if (isEditMode) "Edit Post" else "Add Post",
             fontSize = 25.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .weight(1f)
+            modifier = Modifier.weight(1f)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -148,10 +164,12 @@ fun AddPostScreenContent(
         Spacer(modifier = Modifier.width(16.dp))
 
         Text(
-            text = "Post",
+            text = if (isEditMode) "Update" else "Post",
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clickable { onSavePost() }
+            modifier = Modifier.clickable {
+                if (isEditMode) onSavePost() else onSavePost()
+            }
         )
     }
 
@@ -167,18 +185,49 @@ fun AddPostScreenContent(
                 .padding(top=50.dp)
                 .size(200.dp)
                 .background(Color.Gray)
-                .clickable { onPickImageClick() },
+                .then(
+                    if (!isEditMode) Modifier.clickable { onPickImageClick() }
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center
         ) {
             when {
-                uiState.photoUrl != null -> {
+                isEditMode && uiState.photoUrl != null -> {
+                    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = uiState.photoUrl) {
+                        value = withContext(Dispatchers.IO) {
+                            ImageRepository().base64ToBitmap(
+                                uiState.photoUrl.toString().substringAfter(",")
+                            )
+                        }
+                    }
+
+                    bitmap?.let {
+                        Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = "Existing Post Image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } ?: run {
+                        Icon(
+                            Icons.Default.Photo,
+                            contentDescription = "Default Post",
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                !isEditMode && uiState.photoUrl != null -> {
                     AsyncImage(
                         model = uiState.photoUrl,
                         contentDescription = "Picked Picture",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
-                } else -> {
+                }
+
+                else -> {
                     Icon(
                         Icons.Default.Photo,
                         contentDescription = "Default Post",
@@ -187,6 +236,15 @@ fun AddPostScreenContent(
                     )
                 }
             }
+        }
+
+        if (isEditMode) {
+            Text(
+                text = "Foto tidak dapat diubah saat mode edit",
+                color = Color.Gray,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
 
         Spacer(Modifier.height(24.dp))

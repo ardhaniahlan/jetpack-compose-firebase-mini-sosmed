@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
             MiniSosmedTheme {
                 Scaffold(
                     bottomBar = {
-                        if (currentDestination in bottomNavRoutes) {
+                        if (bottomNavRoutes.any { currentDestination?.startsWith(it) == true }) {
                             MyBottomNavBar(navController)
                         }
                     },

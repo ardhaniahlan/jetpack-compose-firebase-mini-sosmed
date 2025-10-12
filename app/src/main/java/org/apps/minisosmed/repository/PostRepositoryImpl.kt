@@ -1,8 +1,12 @@
 package org.apps.minisosmed.repository
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.Post
 
@@ -34,18 +38,22 @@ class PostRepositoryImpl(
         }
     }
 
-    override suspend fun getAllPost(): Result<List<Post>> {
-        return try {
-            val snapshot = firestore.collection("posts")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .get().await()
+    override suspend fun getAllPost(): Flow<List<Post>> = callbackFlow {
+        val listener = firestore.collection("posts")
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
 
-            val post = snapshot.toObjects(Post::class.java)
-            Result.success(post)
-        } catch (e: Exception){
-            Result.failure(e)
-        }
+                val posts = snapshot?.toObjects(Post::class.java).orEmpty()
+                trySend(posts)
+            }
+
+        awaitClose { listener.remove() }
     }
+
 
     override suspend fun deletePost(postId: String): Result<Unit> {
         val currentUser = firebaseAuth.currentUser ?: return Result.failure(Exception("User belum login"))

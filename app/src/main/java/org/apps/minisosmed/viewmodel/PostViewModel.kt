@@ -44,16 +44,20 @@ class PostViewModel(
 
     }
 
-
     fun loadPost() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            postRepository.getAllPost()
-                .onSuccess { posts ->
+
+            try {
+                val usersResult = userRepository.getAllUsers()
+                val users = usersResult.getOrDefault(emptyList())
+                val userMap = users.associateBy { it.id }
+
+                postRepository.getAllPost().collect { posts ->
                     val enrichedPosts = posts.mapNotNull { post ->
-                        val userResult = userRepository.getUserById(post.userId ?: return@mapNotNull null)
-                        userResult.getOrNull()?.let { user ->
-                            PostWithUser(post, user)
+                        val user = userMap[post.userId]
+                        user?.let {
+                            PostWithUser(post, it)
                         }
                     }
 
@@ -62,12 +66,13 @@ class PostViewModel(
                         isLoading = false
                     )
                 }
-                .onFailure {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        message = "Terjadi kesalahan: ${it.message}"
-                    )
-                }
+            } catch (e: Exception){
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    message = "Terjadi kesalahan: ${e.message}"
+                )
+            }
+
         }
     }
 

@@ -64,7 +64,6 @@ fun MyNavigation(
                 ProfileScreen(navController, authViewModel, userViewModel, modifier)
             }
 
-            // Nav bawa Data
             composable(
                 route = "addpost?postId={postId}",
                 arguments = listOf(

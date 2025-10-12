@@ -79,4 +79,18 @@ class UserRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun getAllUsers(): Result<List<User>> {
+        return try {
+            val snapshot = firestore.collection("users").get().await()
+            val users = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(User::class.java)?.copy(id = doc.id)
+            }
+            Result.success(users)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
 }

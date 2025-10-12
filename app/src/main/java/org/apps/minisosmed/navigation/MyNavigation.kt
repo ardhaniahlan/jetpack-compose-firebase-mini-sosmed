@@ -20,6 +20,7 @@ import org.apps.minisosmed.screen.RegisterScreen
 import org.apps.minisosmed.screen.SearchScreen
 import org.apps.minisosmed.screen.SplashScreen
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
 
@@ -29,9 +30,10 @@ fun MyNavigation(
     authViewModel: AuthViewModel,
     userViewModel: UserViewModel,
     postViewModel: PostViewModel,
+    commentViewModel: CommentViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState,
-    navController: NavHostController
+    navController: NavHostController,
 ) {
     NavHost(
         navController = navController,
@@ -52,7 +54,7 @@ fun MyNavigation(
 
             // Bottom Bar
             composable("home"){
-                HomeScreen(navController, postViewModel, modifier, snackbarHostState)
+                HomeScreen(navController, postViewModel, commentViewModel,modifier, snackbarHostState )
             }
             composable("addpost"){
                 AddPostScreen(navController, postViewModel, modifier, snackbarHostState)

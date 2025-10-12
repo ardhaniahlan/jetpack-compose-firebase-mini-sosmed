@@ -3,6 +3,7 @@ package org.apps.minisosmed.viewmodel
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.Post
 import org.apps.minisosmed.entity.PostMode
-import org.apps.minisosmed.entity.PostWithUser
+import org.apps.minisosmed.entity.relation.PostWithUser
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IPostRepository
 import org.apps.minisosmed.repository.IUserRepository
@@ -154,8 +155,6 @@ class PostViewModel(
         }
     }
 
-
-
     @RequiresApi(Build.VERSION_CODES.O)
     fun createPost(context: Context){
         val current = _uiState.value
@@ -178,7 +177,7 @@ class PostViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         success = "Post berhasil",
-                        posts = _uiState.value.posts + it,
+                        postsWithUser = _uiState.value.postsWithUser + PostWithUser(it, _user.value!!),
                         description = "",
                         photoUrl = null
                     )

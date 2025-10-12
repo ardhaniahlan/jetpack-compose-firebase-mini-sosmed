@@ -21,6 +21,7 @@ import org.apps.minisosmed.navigation.MyBottomNavBar
 import org.apps.minisosmed.navigation.MyNavigation
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
 import org.apps.minisosmed.viewmodel.ViewModelFactory
@@ -35,11 +36,13 @@ class MainActivity : ComponentActivity() {
             Injection.provideUserRepository(),
             Injection.providePostRepository(),
             Injection.provideImageRepository(),
+            Injection.provideCommentRepository(),
         )
 
         val authViewModel: AuthViewModel by viewModels { factory }
         val userViewModel: UserViewModel by viewModels { factory }
         val postViewModel: PostViewModel by viewModels { factory }
+        val commentViewModel: CommentViewModel by viewModels { factory }
 
         setContent {
             val snackbarHostState = remember { SnackbarHostState() }
@@ -65,6 +68,7 @@ class MainActivity : ComponentActivity() {
                         authViewModel = authViewModel,
                         userViewModel = userViewModel,
                         postViewModel = postViewModel,
+                        commentViewModel = commentViewModel,
                         snackbarHostState = snackbarHostState,
                         navController = navController
                     )

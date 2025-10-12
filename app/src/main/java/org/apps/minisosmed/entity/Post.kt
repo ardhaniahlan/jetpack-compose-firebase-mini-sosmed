@@ -5,5 +5,6 @@ data class Post(
     val userId: String? = "",
     val description: String? = "",
     val photoUrl: String? = "",
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val commentCount: Int = 0,
 )

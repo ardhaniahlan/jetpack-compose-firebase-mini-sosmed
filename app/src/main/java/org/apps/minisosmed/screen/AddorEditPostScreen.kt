@@ -30,6 +30,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -49,6 +50,7 @@ import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.PostMode
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.PostViewModel
 
@@ -61,6 +63,7 @@ fun AddPostScreen(
     snackbarHostState: SnackbarHostState
 ){
     val uiState by postViewModel.uiState
+    val postState by postViewModel.postState.collectAsState()
     val context = LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -81,48 +84,53 @@ fun AddPostScreen(
                 } else {
                     postViewModel.createPost(context)
                 }
-                postViewModel.finishEditing()
+                postViewModel.resetPostState()
             },
             onResetPost = { postViewModel.clearForm() }
         )
 
-        if (uiState.isLoading){
-            Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-    }
 
-    LaunchedEffect(uiState.success, uiState.message) {
-        when {
-            uiState.success != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.success!!,
-                    duration = SnackbarDuration.Short,
-                    actionLabel = "OK"
-                )
-
-                postViewModel.clearMessage()
-                postViewModel.finishEditing()
-
-                navController.navigate("home") {
-                    popUpTo("addpost") { inclusive = true }
-                    launchSingleTop = true
+        when (val state = postState){
+            is ViewState.Loading -> {
+                Box(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
 
-            uiState.message != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.message!!,
-                    duration = SnackbarDuration.Short
-                )
-                postViewModel.clearMessage()
+            is ViewState.Success -> {
+                LaunchedEffect(Unit) {
+                    snackbarHostState.showSnackbar(
+                        message = "Post Berhasil",
+                        actionLabel = "OK"
+                    )
+
+                    postViewModel.clearForm()
+                    postViewModel.resetPostState()
+
+                    navController.navigate("home") {
+                        popUpTo("addpost") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             }
+
+            is ViewState.Error -> {
+                LaunchedEffect(state.message) {
+                    snackbarHostState.showSnackbar(
+                        message = state.message,
+                        duration = SnackbarDuration.Short,
+                    )
+
+                    postViewModel.clearForm()
+                }
+            }
+
+            else -> Unit
         }
     }
 }

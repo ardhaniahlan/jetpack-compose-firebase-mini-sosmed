@@ -1,7 +1,9 @@
 package org.apps.minisosmed.screen
 
+import android.R.id.message
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +59,7 @@ import org.apps.minisosmed.entity.relation.PostWithUser
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.formatTimestamp
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 
@@ -70,53 +73,85 @@ fun HomeScreen(
     snackbarHostState: SnackbarHostState,
 ) {
     val uiState by postViewModel.uiState
-    val currentUser = postViewModel.user.collectAsState().value
+    val userState by postViewModel.user.collectAsState()
+    val postState by postViewModel.postState.collectAsState()
 
     var showCommentSheet by remember { mutableStateOf(false) }
     var selectedPostId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
-        postViewModel.loadPost()
+    LaunchedEffect(true) {
         postViewModel.loadCurrentUser()
+        postViewModel.loadPost()
     }
 
-    LaunchedEffect(uiState.success, uiState.message) {
-        when {
-            uiState.success != null -> {
+    LaunchedEffect(postState) {
+        when (postState) {
+            is ViewState.Success -> {
                 snackbarHostState.showSnackbar(
-                    message = uiState.success!!,
-                    duration = SnackbarDuration.Short,
-                    actionLabel = "OK"
-                )
-                postViewModel.clearMessage()
-            }
-
-            uiState.message != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.message!!,
+                    message = "Operasi berhasil!",
                     duration = SnackbarDuration.Short
                 )
-                postViewModel.clearMessage()
+                postViewModel.resetPostState()
             }
+
+            is ViewState.Error -> {
+                val message = (postState as ViewState.Error).message
+                snackbarHostState.showSnackbar(
+                    message = message,
+                    duration = SnackbarDuration.Short
+                )
+                postViewModel.resetPostState()
+            }
+
+            else -> Unit
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        HomeScreenContent(
-            postsWithUser = uiState.postsWithUser,
-            isLoading = uiState.isLoading,
-            errorMessage = uiState.message,
-            currentUserId = currentUser?.id,
-            onDeletePost = { postId ->
-                postViewModel.deletePost(postId)
-            },
-            navController = navController,
-            commentViewModel = commentViewModel,
-            onShowComments = { postId ->
-                selectedPostId = postId
-                showCommentSheet = true
+        when (val state = userState) {
+            is ViewState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        )
+
+            is ViewState.Error -> {
+                Text(
+                    text = state.message,
+                    color = Color.Red,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            is ViewState.Success -> {
+                val currentUser = state.data
+
+                HomeScreenContent(
+                    postsWithUser = uiState.postsWithUser,
+                    isLoading = postState is ViewState.Loading,
+                    errorMessage = if (postState is ViewState.Error)
+                        (postState as ViewState.Error).message
+                    else null,
+                    currentUserId = currentUser?.id,
+                    onDeletePost = { postId ->
+                        postViewModel.deletePost(postId)
+                    },
+                    navController = navController,
+                    commentViewModel = commentViewModel,
+                    onShowComments = { postId ->
+                        selectedPostId = postId
+                        showCommentSheet = true
+                    }
+                )
+            }
+
+            else -> Unit
+        }
 
         if (showCommentSheet && selectedPostId != null) {
             ModalBottomSheet(

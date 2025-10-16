@@ -17,13 +17,17 @@ import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.UpdateUserUiState
+import org.apps.minisosmed.state.ViewState
 
 class UserViewModel (
     private  val userRepository: IUserRepository,
     private val imageRepository: ImageRepository
 ): ViewModel() {
-    private val _user = MutableStateFlow<User?>(null)
-    val user : StateFlow<User?> = _user
+    private val _user = MutableStateFlow<ViewState<User?>>(ViewState.Idle)
+    val user : StateFlow<ViewState<User?>> = _user
+
+    private val _updateState = MutableStateFlow<ViewState<Unit>>(ViewState.Idle)
+    val updateState: StateFlow<ViewState<Unit>> = _updateState
 
     private val _uiState = mutableStateOf(UpdateUserUiState())
     val uiState : State<UpdateUserUiState> = _uiState
@@ -34,23 +38,14 @@ class UserViewModel (
 
     fun refreshUser() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _user.value = ViewState.Loading
 
             userRepository.getCurrentUser()
                 .onSuccess { user ->
-                    _user.value = user
-                    _uiState.value = UpdateUserUiState(
-                        displayName = user.displayName ?: "",
-                        bio = user.bio ?: "",
-                        photoUrl = null,
-                        isLoading = false
-                    )
+                    _user.value = ViewState.Success(user)
                 }
                 .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        message = "Gagal memuat data user: ${e.message}"
-                    )
+                    _user.value = ViewState.Error("Gagal memuat data user: ${e.message}")
                 }
         }
     }
@@ -58,55 +53,43 @@ class UserViewModel (
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun updateProfile(context: Context) {
-        val currentUser = _user.value
-        if (currentUser == null) return
+        val currentUserState = _user.value
+        if (currentUserState !is ViewState.Success) return
 
-        val currentState = _uiState.value
+        val currentUser= currentUserState.data
+        val currentUiState = _uiState.value
 
-        val hasChanges = currentUser.displayName != currentState.displayName ||
-                currentUser.bio != currentState.bio ||
-                currentState.photoUrl != null
+        val hasChanges = currentUser?.displayName != currentUiState.displayName ||
+                currentUser?.bio != currentUiState.bio ||
+                currentUiState.photoUrl != null
 
         if (!hasChanges) return
 
         viewModelScope.launch {
-            _uiState.value = currentState.copy(isLoading = true)
+            _updateState.value = ViewState.Loading
 
             try {
                 val photoBase64 = withContext(Dispatchers.IO) {
-                    currentState.photoUrl?.let { uri ->
+                    currentUiState.photoUrl?.let { uri ->
                         imageRepository.uriToBase64(context, uri)
                     }
                 }
 
                 val result = userRepository.updateProfile(
-                    displayName = currentState.displayName,
-                    bio = currentState.bio,
+                    displayName = currentUiState.displayName,
+                    bio = currentUiState.bio,
                     photoUri = photoBase64
                 )
 
                 result.onSuccess { updatedUser ->
-                    _user.value = updatedUser
-                    _uiState.value = UpdateUserUiState(
-                        displayName = updatedUser.displayName,
-                        bio = updatedUser.bio,
-                        photoUrl = null,
-                        success = "Profil berhasil diupdate",
-                        isLoading = false
-                    )
-
+                    _updateState.value = ViewState.Success(Unit)
+                    refreshUser()
                 }.onFailure { error ->
-                    _uiState.value = currentState.copy(
-                        isLoading = false,
-                        message = "Gagal update profil: ${error.message}"
-                    )
+                    _updateState.value = ViewState.Error("Gagal update profil: ${error.message}")
                 }
 
             } catch (e: Exception) {
-                _uiState.value = currentState.copy(
-                    isLoading = false,
-                    message = "Terjadi kesalahan: ${e.message}"
-                )
+                _updateState.value = ViewState.Error("Terjadi kesalahan: ${e.message}")
             }
         }
     }
@@ -126,5 +109,9 @@ class UserViewModel (
 
     fun onPhotoPicked(uri: Uri) {
         _uiState.value = _uiState.value.copy(photoUrl = uri)
+    }
+
+    fun resetUpdateState(){
+        _updateState.value = ViewState.Idle
     }
 }

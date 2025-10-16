@@ -39,6 +39,7 @@ import kotlinx.coroutines.withContext
 import org.apps.minisosmed.R
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
@@ -50,8 +51,7 @@ fun ProfileScreen(
     userViewModel: UserViewModel,
     modifier: Modifier
 ){
-    val uiState by authViewModel.uiState
-    val user by userViewModel.user.collectAsState()
+    val userState by userViewModel.user.collectAsState()
 
     LaunchedEffect(Unit) {
         userViewModel.refreshUser()
@@ -60,31 +60,49 @@ fun ProfileScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        ProfileScreenContent(
-            user = user,
-            onLogoutClick = {
-                authViewModel.logout()
-                navController.navigate("login") {
-                    popUpTo("home") {
-                        inclusive = true
-                    }
-                    launchSingleTop = true
+        when (val state = userState) {
+            is ViewState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
-            },
-            onEditClick = {
-                navController.navigate("editprofile")
             }
-        )
 
-        if (uiState.isLoading){
-            Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+            is ViewState.Success -> {
+                val user = state.data
+                ProfileScreenContent(
+                    user = user,
+                    onLogoutClick = {
+                        authViewModel.logout()
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onEditClick = {
+                        navController.navigate("editprofile")
+                    }
+                )
             }
+
+            is ViewState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.message,
+                        color = Color.Red,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            else -> Unit
         }
     }
 }

@@ -1,22 +1,30 @@
 package org.apps.minisosmed.viewmodel
 
+import android.util.Log.e
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.state.AuthUiState
 import org.apps.minisosmed.repository.IAuthRepository
+import org.apps.minisosmed.state.ViewState
 
 class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
 
     private val _uiState = mutableStateOf(AuthUiState())
     val uiState: State<AuthUiState> = _uiState
 
+    private val _authState = MutableStateFlow<ViewState<User>>(ViewState.Idle)
+    val authState: StateFlow<ViewState<User>> = _authState
+
     fun logout() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
             authRepository.logout()
+            _authState.value = ViewState.Idle
             _uiState.value = AuthUiState()
         }
     }
@@ -24,18 +32,13 @@ class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
     fun login(){
         val current = _uiState.value
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _authState.value = ViewState.Loading
+
             val result = authRepository.login(current.email, current.password)
-            result.onSuccess {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    success = "Login berhasil"
-                )
-            }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = it.message
-                )
+            result.onSuccess { user ->
+                _authState.value = ViewState.Success(user)
+            }.onFailure { e ->
+                _authState.value = ViewState.Error(e.message ?: "Login gagal")
             }
         }
     }
@@ -43,18 +46,12 @@ class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
     fun register (){
         val current = _uiState.value
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _authState.value = ViewState.Loading
             val result = authRepository.register(current.email, current.password, current.displayName)
-            result.onSuccess {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    success = "Register berhasil"
-                )
-            }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    message = it.message
-                )
+            result.onSuccess { user ->
+                _authState.value = ViewState.Success(user)
+            }.onFailure { e ->
+                _authState.value = ViewState.Error(e.message ?: "Register gagal")
             }
         }
     }
@@ -104,14 +101,10 @@ class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
     }
 
     fun clearForm() {
-        _uiState.value = _uiState.value.copy(
-            email = "",
-            password = "",
-            message = null
-        )
+        _uiState.value = AuthUiState()
     }
 
-    fun resetUiState() {
-        _uiState.value = AuthUiState()
+    fun resetAuthState() {
+        _authState.value = ViewState.Idle
     }
 }

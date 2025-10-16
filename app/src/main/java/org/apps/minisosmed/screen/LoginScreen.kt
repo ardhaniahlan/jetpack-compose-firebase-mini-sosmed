@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import org.apps.minisosmed.state.AuthUiState
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.poppinsFontFamily
 import org.apps.minisosmed.viewmodel.AuthViewModel
 
@@ -52,6 +54,7 @@ fun LoginScreen(
     snackbarHostState: SnackbarHostState
 ){
     val uiState by authViewModel.uiState
+    val authState by authViewModel.authState.collectAsState()
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -70,44 +73,47 @@ fun LoginScreen(
             }
         )
 
-        if (uiState.isLoading){
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-    }
-
-    LaunchedEffect(uiState.success, uiState.message) {
-        when {
-            uiState.success != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.success!!,
-                    duration = SnackbarDuration.Short,
-                    actionLabel = "OK"
-                )
-
-                navController.navigate("home") {
-                    popUpTo("login") { inclusive = true }
+        when (val state = authState) {
+            is ViewState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
 
-            uiState.message != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.message!!,
-                    duration = SnackbarDuration.Short
-                )
+            is ViewState.Success -> {
+                LaunchedEffect(Unit) {
+                    snackbarHostState.showSnackbar(
+                        message = "Login Berhasil",
+                    )
+
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             }
+
+            is ViewState.Error -> {
+                LaunchedEffect(state.message) {
+                    snackbarHostState.showSnackbar(
+                        message = state.message,
+                    )
+                    authViewModel.resetAuthState()
+                }
+            }
+
+            else -> Unit
         }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            authViewModel.resetUiState()
+            authViewModel.clearForm()
+            authViewModel.resetAuthState()
         }
     }
 
@@ -166,7 +172,7 @@ fun LoginScreenContent(
                 value = uiState.email,
                 onValueChange = onEmailChange,
                 label = { Text("Email") },
-                isError = uiState.message != null,
+                isError = uiState.emailError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -195,7 +201,7 @@ fun LoginScreenContent(
                         Icon(image, contentDescription = null)
                     }
                 },
-                isError = uiState.message != null,
+                isError = uiState.passwordError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done

@@ -83,7 +83,7 @@ fun MyNavigation(
                         val post = postViewModel.uiState.value.postsWithUser.find { it.post.id == postId }?.post
                         post?.let { postViewModel.startEditPost(it) }
                     } else {
-                        postViewModel.finishEditing()
+                        postViewModel.resetPostState()
                     }
                 }
 

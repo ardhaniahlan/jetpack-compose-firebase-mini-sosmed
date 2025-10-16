@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.relation.CommentWithUser
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.CommentViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,16 +57,13 @@ fun CommentBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by commentViewModel.uiState
-    var commentText by remember { mutableStateOf("") }
-    val isLoading = uiState.isLoading
-    
+    val commentState by commentViewModel.commentState.collectAsState()
     val comments = commentViewModel.commentsPerPost[postId] ?: emptyList()
+    var commentText by remember { mutableStateOf("") }
 
     LaunchedEffect(postId) {
         commentViewModel.loadComments(postId)
     }
-
 
     Column(
         modifier = Modifier
@@ -87,15 +87,49 @@ fun CommentBottomSheet(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        when (val state = commentState) {
+            is ViewState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        } else {
-            CommentScreenContent(
-                commentWithUser = comments,
-                modifier = Modifier.weight(1f)
-            )
+
+            is ViewState.Success, is ViewState.Idle -> {
+                if (comments.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Belum ada komentar")
+                    }
+                } else {
+                    CommentScreenContent(
+                        commentWithUser = comments,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            is ViewState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.message,
+                        color = Color.Red
+                    )
+                }
+            }
         }
 
         Divider()
@@ -109,7 +143,7 @@ fun CommentBottomSheet(
                 onValueChange = { commentText = it },
                 placeholder = { Text("Tambahkan komentar...") },
                 modifier = Modifier.weight(1f),
-                enabled = !isLoading
+                enabled = commentState !is ViewState.Loading
             )
 
             IconButton(
@@ -119,9 +153,9 @@ fun CommentBottomSheet(
                         commentText = ""
                     }
                 },
-                enabled = commentText.isNotBlank() && !isLoading
+                enabled = commentText.isNotBlank() && commentState !is ViewState.Loading
             ) {
-                if (isLoading) {
+                if (commentState is ViewState.Loading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
                     Icon(Icons.Default.Send, contentDescription = "Kirim")

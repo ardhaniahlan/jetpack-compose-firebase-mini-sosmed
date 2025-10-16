@@ -54,6 +54,7 @@ import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.UpdateUserUiState
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.UserViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -66,7 +67,8 @@ fun EditProfileScreen(
 ){
 
     val uiState by userViewModel.uiState
-    val user by userViewModel.user.collectAsState()
+    val userState by userViewModel.user.collectAsState()
+    val updateState by userViewModel.updateState.collectAsState()
     val context = LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -76,24 +78,56 @@ fun EditProfileScreen(
         }
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        EditProfileScreenContent(
-            user = user,
-            uiState = uiState,
-            onDisplayNameChange = userViewModel::onDisplayNameChange,
-            onBioChange = userViewModel::onBioChange,
-            onPickImageClick = { imagePickerLauncher.launch("image/*") },
-            onBackScreen = {
-                navController.navigate("profile") {
-                    popUpTo("editprofile") { inclusive = true }
-                }
-            },
-            onSaveEdit = { userViewModel.updateProfile(context) }
-        )
+    LaunchedEffect(true) {
+        userViewModel.refreshUser()
+    }
 
-        if (uiState.isLoading){
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = userState) {
+            is ViewState.Loading -> {
+                Box(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is ViewState.Success -> {
+                EditProfileScreenContent(
+                    user = state.data,
+                    uiState = uiState,
+                    onDisplayNameChange = userViewModel::onDisplayNameChange,
+                    onBioChange = userViewModel::onBioChange,
+                    onPickImageClick = { imagePickerLauncher.launch("image/*") },
+                    onBackScreen = {
+                        navController.navigate("profile") {
+                            popUpTo("editprofile") { inclusive = true }
+                        }
+                    },
+                    onSaveEdit = { userViewModel.updateProfile(context) }
+                )
+            }
+
+            is ViewState.Error -> {
+                LaunchedEffect(state.message) {
+                    snackbarHostState.showSnackbar(
+                        message = state.message,
+                        duration = SnackbarDuration.Short
+                    )
+                }
+            }
+
+            else -> Unit
+        }
+    }
+
+    when (updateState) {
+        is ViewState.Loading -> {
             Box(
-                modifier = modifier
+                modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
@@ -101,35 +135,33 @@ fun EditProfileScreen(
                 CircularProgressIndicator()
             }
         }
-    }
 
-    LaunchedEffect(uiState.success, uiState.message) {
-        when {
-            uiState.success != null -> {
+        is ViewState.Success -> {
+            LaunchedEffect(Unit) {
                 snackbarHostState.showSnackbar(
-                    message = uiState.success!!,
-                    duration = SnackbarDuration.Short,
+                    message = "Update berhasil",
                     actionLabel = "OK"
                 )
-
                 navController.navigate("profile") {
                     popUpTo("profile") { inclusive = true }
                     launchSingleTop = true
                 }
-            }
-
-            uiState.message != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.message!!,
-                    duration = SnackbarDuration.Short
-                )
+                userViewModel.resetUpdateState()
             }
         }
 
-        userViewModel.refreshUser()
+        is ViewState.Error -> {
+            val message = (updateState as ViewState.Error).message
+            LaunchedEffect(message) {
+                snackbarHostState.showSnackbar(
+                    message = message
+                )
+                userViewModel.resetUpdateState()
+            }
+        }
+
+        else -> Unit
     }
-
-
 }
 
 @Composable
@@ -168,13 +200,14 @@ fun EditProfileScreenContent(
 
         Spacer(modifier = Modifier.width(16.dp))
 
+        val isLoading = false
         Icon(
             Icons.Default.Check,
             contentDescription = "Save",
-            tint = if (uiState.isLoading) Color.Gray else MaterialTheme.colorScheme.primary,
+            tint = if (isLoading) Color.Gray else MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .size(30.dp)
-                .clickable(enabled = !uiState.isLoading) { onSaveEdit() }
+                .clickable(enabled = !isLoading) { onSaveEdit() }
         )
     }
 

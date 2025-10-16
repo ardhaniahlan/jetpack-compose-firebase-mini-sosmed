@@ -1,5 +1,6 @@
 package org.apps.minisosmed.screen
 
+import android.R.id.message
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import org.apps.minisosmed.state.AuthUiState
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.poppinsFontFamily
 import org.apps.minisosmed.viewmodel.AuthViewModel
 
@@ -52,6 +55,7 @@ fun RegisterScreen(
     snackbarHostState: SnackbarHostState
 ) {
     val uiState by authViewModel.uiState
+    val authState by authViewModel.authState.collectAsState()
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -73,44 +77,47 @@ fun RegisterScreen(
             }
         )
 
-        if (uiState.isLoading){
-            Box(
-                modifier = modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        when (val state = authState){
+            is ViewState.Loading -> {
+                Box(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
-        }
-    }
-
-    LaunchedEffect(uiState.success, uiState.message) {
-        when {
-            uiState.success != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.success!!,
-                    duration = SnackbarDuration.Short,
-                    actionLabel = "OK"
-                )
-
-                navController.navigate("login") {
-                    popUpTo("register") { inclusive = true }
+            is ViewState.Success -> {
+                LaunchedEffect(Unit) {
+                    snackbarHostState.showSnackbar(
+                        message = "Registrasi berhasil",
+                        actionLabel = "OK"
+                    )
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                    authViewModel.resetAuthState()
                 }
             }
 
-            uiState.message != null -> {
-                snackbarHostState.showSnackbar(
-                    message = uiState.message!!,
-                    duration = SnackbarDuration.Short
-                )
+            is ViewState.Error -> {
+                LaunchedEffect(state.message) {
+                    snackbarHostState.showSnackbar(
+                        message = state.message,
+                    )
+                    authViewModel.resetAuthState()
+                }
             }
+
+            else -> Unit
         }
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            authViewModel.resetUiState()
+            authViewModel.clearForm()
+            authViewModel.resetAuthState()
         }
     }
 }
@@ -161,7 +168,7 @@ fun RegisterScreenContent(
                 value = uiState.displayName,
                 onValueChange = onDisplayNameChange,
                 label = { Text("Display Name") },
-                isError = uiState.message != null,
+                isError = uiState.displayNameError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -180,7 +187,7 @@ fun RegisterScreenContent(
                 value = uiState.email,
                 onValueChange = onEmailChange,
                 label = { Text("Email") },
-                isError = uiState.message != null,
+                isError = uiState.emailError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -209,7 +216,7 @@ fun RegisterScreenContent(
                         Icon(image, contentDescription = null)
                     }
                 },
-                isError = uiState.message != null,
+                isError = uiState.passwordError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done
@@ -240,7 +247,7 @@ fun RegisterScreenContent(
                         Icon(image, contentDescription = null)
                     }
                 },
-                isError = uiState.message != null,
+                isError = uiState.confirmPasswordError != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Done

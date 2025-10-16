@@ -11,7 +11,4 @@ data class PostUiState(
     val postsWithUser: List<PostWithUser> = emptyList(),
     val mode: PostMode = PostMode.ADD,
     val postBeingEditedId: String? = null,
-    override val isLoading: Boolean = false,
-    override val success: String? = null,
-    override val message: String? = null
-): UiState
+)

@@ -11,8 +11,4 @@ data class AuthUiState(
     val emailError: String? = null,
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
-
-    override val isLoading: Boolean = false,
-    override val success: String? = null,
-    override val message: String? = null
-) : UiState
+)

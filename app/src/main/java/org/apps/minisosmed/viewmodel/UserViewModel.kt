@@ -32,8 +32,16 @@ class UserViewModel (
     private val _uiState = mutableStateOf(UpdateUserUiState())
     val uiState : State<UpdateUserUiState> = _uiState
 
-    init {
-        refreshUser()
+    private val _searchResults = MutableStateFlow<List<User>>(emptyList())
+    val searchResults: StateFlow<List<User>> = _searchResults
+
+    fun searchUser(query: String) {
+        viewModelScope.launch {
+            userRepository.searchUsersByName(query)
+                .collect { users ->
+                    _searchResults.value = users
+                }
+        }
     }
 
     fun refreshUser() {
@@ -50,6 +58,17 @@ class UserViewModel (
         }
     }
 
+    fun getUserById(userId: String) {
+        viewModelScope.launch {
+            _user.value = ViewState.Loading
+            val result = userRepository.getUserById(userId)
+            _user.value = result.fold(
+                onSuccess = { ViewState.Success(it) },
+
+                onFailure = { ViewState.Error(it.message ?: "Gagal mengambil user") }
+            )
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun updateProfile(context: Context) {

@@ -5,6 +5,9 @@ import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.User
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 class UserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
@@ -90,6 +93,33 @@ class UserRepositoryImpl(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override fun searchUsersByName(query: String): Flow<List<User>> = callbackFlow {
+        if (query.isBlank()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listenerRegistration = firestore.collection("users")
+            .orderBy("displayName")
+            .startAt(query)
+            .endAt("$query\uf8ff")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val users = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(User::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+
+                trySend(users)
+            }
+
+        awaitClose { listenerRegistration.remove() }
     }
 
 

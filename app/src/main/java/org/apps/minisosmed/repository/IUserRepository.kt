@@ -1,5 +1,6 @@
 package org.apps.minisosmed.repository
 
+import kotlinx.coroutines.flow.Flow
 import org.apps.minisosmed.entity.User
 
 interface IUserRepository {
@@ -8,5 +9,7 @@ interface IUserRepository {
     suspend fun getCurrentUser(): Result<User>
     suspend fun getUserById(userId: String): Result<User>
     suspend fun getAllUsers(): Result<List<User>>
+    fun searchUsersByName(query: String): Flow<List<User>>
+
 
 }

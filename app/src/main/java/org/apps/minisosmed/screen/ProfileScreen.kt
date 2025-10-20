@@ -1,6 +1,7 @@
 package org.apps.minisosmed.screen
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,12 +50,17 @@ fun ProfileScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
     userViewModel: UserViewModel,
-    modifier: Modifier
+    modifier: Modifier,
+    userId: String? = null
 ){
     val userState by userViewModel.user.collectAsState()
 
-    LaunchedEffect(Unit) {
-        userViewModel.refreshUser()
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            userViewModel.getUserById(userId)
+        } else {
+            userViewModel.refreshUser()
+        }
     }
 
     Box(
@@ -85,7 +91,8 @@ fun ProfileScreen(
                     },
                     onEditClick = {
                         navController.navigate("editprofile")
-                    }
+                    },
+                    isCurrentUser = (userId == null)
                 )
             }
 
@@ -111,7 +118,8 @@ fun ProfileScreen(
 fun ProfileScreenContent(
     user: User?,
     onLogoutClick: () -> Unit,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    isCurrentUser: Boolean
 ){
 
     Column(
@@ -123,30 +131,30 @@ fun ProfileScreenContent(
             horizontalArrangement = Arrangement.End
         ) {
             Text(
-                text = "Profil Saya",
+                text = "Profil ${if (isCurrentUser) "Saya" else ""}",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
 
-            Text(
-                text = "Edit",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .clickable{ onEditClick() }
-            )
+            if (isCurrentUser) {
+                Text(
+                    text = "Edit",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable { onEditClick() }
+                )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = "Logout",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Red,
-                modifier = Modifier
-                    .clickable{ onLogoutClick() }
-            )
+                Text(
+                    text = "Logout",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Red,
+                    modifier = Modifier.clickable { onLogoutClick() }
+                )
+            }
         }
 
         Row(
@@ -160,7 +168,6 @@ fun ProfileScreenContent(
                         user.photoUrl.let { ImageRepository().base64ToBitmap(it) }
                     }
                 }
-
 
                 bitmap?.let {
                     Image(
@@ -226,7 +233,8 @@ fun ProfileScreenContentPreview() {
                 photoUrl = "https://picsum.photos/200"
             ),
             onLogoutClick = {},
-            onEditClick = {}
+            onEditClick = {},
+            isCurrentUser = false
         )
     }
 }

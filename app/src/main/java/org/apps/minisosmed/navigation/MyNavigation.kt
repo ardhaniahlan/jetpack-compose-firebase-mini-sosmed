@@ -60,10 +60,31 @@ fun MyNavigation(
                 AddPostScreen(navController, postViewModel, modifier, snackbarHostState)
             }
             composable("search"){
-                SearchScreen(navController)
+                SearchScreen(navController, userViewModel)
             }
             composable("profile"){
                 ProfileScreen(navController, authViewModel, userViewModel, modifier)
+            }
+
+            composable(
+                route = "profile/{userId}",
+                arguments = listOf(
+                    navArgument("userId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")
+
+                ProfileScreen(
+                    navController = navController,
+                    authViewModel = authViewModel,
+                    userViewModel = userViewModel,
+                    modifier = modifier,
+                    userId = userId
+                )
             }
 
             composable(

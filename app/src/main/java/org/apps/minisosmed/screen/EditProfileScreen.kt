@@ -78,10 +78,6 @@ fun EditProfileScreen(
         }
     )
 
-    LaunchedEffect(true) {
-        userViewModel.refreshUser()
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         when (val state = userState) {
             is ViewState.Loading -> {

@@ -62,6 +62,7 @@ import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
+import org.apps.minisosmed.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

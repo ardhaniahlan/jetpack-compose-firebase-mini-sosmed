@@ -3,6 +3,7 @@ package org.apps.minisosmed.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import org.apps.minisosmed.repository.IAuthRepository
+import org.apps.minisosmed.repository.IChatRepository
 import org.apps.minisosmed.repository.ICommentRepository
 import org.apps.minisosmed.repository.IPostRepository
 import org.apps.minisosmed.repository.IUserRepository
@@ -13,7 +14,8 @@ class ViewModelFactory(
     private val userRepository: IUserRepository,
     private val postRepository: IPostRepository,
     private val imageRepository: ImageRepository,
-    private val commentRepository: ICommentRepository
+    private val commentRepository: ICommentRepository,
+    private val chatRepository: IChatRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -28,6 +30,9 @@ class ViewModelFactory(
 
             modelClass.isAssignableFrom(CommentViewModel::class.java) ->
                 CommentViewModel(commentRepository, userRepository) as T
+
+            modelClass.isAssignableFrom(ChatViewModel::class.java) ->
+                ChatViewModel(chatRepository) as T
 
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }

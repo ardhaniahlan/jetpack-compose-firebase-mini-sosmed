@@ -1,6 +1,5 @@
 package org.apps.minisosmed.screen
 
-import android.R.id.message
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -204,6 +204,12 @@ fun HomeScreenContent(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = { navController.navigate("chatList") }) {
+                Icon(
+                    imageVector = Icons.Default.Message,
+                    contentDescription = "Chat List"
+                )
+            }
         }
 
         when {

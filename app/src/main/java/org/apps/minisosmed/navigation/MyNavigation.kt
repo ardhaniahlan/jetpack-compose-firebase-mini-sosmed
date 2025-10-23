@@ -11,7 +11,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.google.firebase.auth.FirebaseAuth
 import org.apps.minisosmed.screen.AddPostScreen
+import org.apps.minisosmed.screen.ChatListScreen
+import org.apps.minisosmed.screen.ChatScreen
 import org.apps.minisosmed.screen.EditProfileScreen
 import org.apps.minisosmed.screen.HomeScreen
 import org.apps.minisosmed.screen.LoginScreen
@@ -20,6 +23,7 @@ import org.apps.minisosmed.screen.RegisterScreen
 import org.apps.minisosmed.screen.SearchScreen
 import org.apps.minisosmed.screen.SplashScreen
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.ChatViewModel
 import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
@@ -30,6 +34,7 @@ fun MyNavigation(
     authViewModel: AuthViewModel,
     userViewModel: UserViewModel,
     postViewModel: PostViewModel,
+    chatViewModel: ChatViewModel,
     commentViewModel: CommentViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState,
@@ -63,7 +68,7 @@ fun MyNavigation(
                 SearchScreen(navController, userViewModel)
             }
             composable("profile"){
-                ProfileScreen(navController, authViewModel, userViewModel, modifier)
+                ProfileScreen(navController, authViewModel, userViewModel,chatViewModel, modifier)
             }
 
             composable(
@@ -82,6 +87,7 @@ fun MyNavigation(
                     navController = navController,
                     authViewModel = authViewModel,
                     userViewModel = userViewModel,
+                    chatViewModel = chatViewModel,
                     modifier = modifier,
                     userId = userId
                 )
@@ -113,6 +119,26 @@ fun MyNavigation(
                     postViewModel = postViewModel,
                     modifier = modifier,
                     snackbarHostState = snackbarHostState
+                )
+            }
+
+            composable("chatList") {
+                ChatListScreen(
+                    navController = navController,
+                    chatViewModel = chatViewModel,
+                    currentUserId = FirebaseAuth.getInstance().currentUser?.uid!!
+                )
+            }
+
+            composable(
+                route = "chat/{chatId}",
+                arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val chatId = backStackEntry.arguments?.getString("chatId")!!
+                ChatScreen(
+                    chatId = chatId,
+                    currentUserId = FirebaseAuth.getInstance().currentUser?.uid!!,
+                    chatViewModel = chatViewModel
                 )
             }
         }

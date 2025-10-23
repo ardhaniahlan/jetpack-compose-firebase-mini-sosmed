@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +36,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.R
 import org.apps.minisosmed.entity.User
@@ -43,6 +48,7 @@ import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
+import org.apps.minisosmed.viewmodel.ChatViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
 
 @Composable
@@ -50,10 +56,12 @@ fun ProfileScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
     userViewModel: UserViewModel,
+    chatViewModel: ChatViewModel,
     modifier: Modifier,
     userId: String? = null
 ){
     val userState by userViewModel.user.collectAsState()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -92,6 +100,12 @@ fun ProfileScreen(
                     onEditClick = {
                         navController.navigate("editprofile")
                     },
+                    onMessageClick = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            val chatId = chatViewModel.openOrCreateChat(userId!!)
+                            navController.navigate("chat/$chatId")
+                        }
+                    },
                     isCurrentUser = (userId == null)
                 )
             }
@@ -119,6 +133,7 @@ fun ProfileScreenContent(
     user: User?,
     onLogoutClick: () -> Unit,
     onEditClick: () -> Unit,
+    onMessageClick: () -> Unit,
     isCurrentUser: Boolean
 ){
 
@@ -206,6 +221,16 @@ fun ProfileScreenContent(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
+
+                if (!isCurrentUser) {
+                    Button(
+                        onClick = onMessageClick,
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text("Message")
+                    }
+                }
+
             }
         }
         Spacer(modifier = Modifier.width(16.dp))
@@ -234,6 +259,7 @@ fun ProfileScreenContentPreview() {
             ),
             onLogoutClick = {},
             onEditClick = {},
+            onMessageClick = {},
             isCurrentUser = false
         )
     }

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.repository.ImageRepository
@@ -67,10 +68,11 @@ fun SearchScreen(
     }
 
     val searchResults by userViewModel.searchResults.collectAsState()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     LaunchedEffect(query) {
         if (query.isNotBlank()) {
-            userViewModel.searchUser(query)
+            userViewModel.searchUser(query, currentUserId)
         }
     }
 

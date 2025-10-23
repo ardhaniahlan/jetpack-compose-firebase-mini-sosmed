@@ -95,7 +95,7 @@ class UserRepositoryImpl(
         }
     }
 
-    override fun searchUsersByName(query: String): Flow<List<User>> = callbackFlow {
+    override fun searchUsersByName(query: String, currentUser: String): Flow<List<User>> = callbackFlow {
         if (query.isBlank()) {
             trySend(emptyList())
             close()
@@ -112,9 +112,10 @@ class UserRepositoryImpl(
                     return@addSnapshotListener
                 }
 
-                val users = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(User::class.java)?.copy(id = doc.id)
-                } ?: emptyList()
+                val users = snapshot?.documents
+                    ?.mapNotNull { doc -> doc.toObject(User::class.java)?.copy(id = doc.id) }
+                    ?.filter { it.id != currentUser }
+                    ?: emptyList()
 
                 trySend(users)
             }

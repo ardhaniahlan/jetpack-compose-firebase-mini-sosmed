@@ -35,9 +35,9 @@ class UserViewModel (
     private val _searchResults = MutableStateFlow<List<User>>(emptyList())
     val searchResults: StateFlow<List<User>> = _searchResults
 
-    fun searchUser(query: String) {
+    fun searchUser(query: String, currentUser: String) {
         viewModelScope.launch {
-            userRepository.searchUsersByName(query)
+            userRepository.searchUsersByName(query, currentUser)
                 .collect { users ->
                     _searchResults.value = users
                 }

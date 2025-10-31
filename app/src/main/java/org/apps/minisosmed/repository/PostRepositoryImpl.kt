@@ -93,4 +93,13 @@ class PostRepositoryImpl(
         }
     }
 
+    override suspend fun getPostById(postId: String): Result<Post> = try {
+        val doc = firestore.collection("posts").document(postId).get().await()
+        val post = doc.toObject(Post::class.java)!!.copy(id = doc.id)
+        Result.success(post)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+
 }

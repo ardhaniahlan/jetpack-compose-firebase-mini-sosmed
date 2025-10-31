@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import org.apps.minisosmed.state.AuthUiState
 import org.apps.minisosmed.state.ViewState
@@ -50,10 +51,10 @@ import org.apps.minisosmed.viewmodel.AuthViewModel
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    authViewModel: AuthViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState
 ) {
+    val authViewModel: AuthViewModel = hiltViewModel()
     val uiState by authViewModel.uiState
     val authState by authViewModel.authState.collectAsState()
 

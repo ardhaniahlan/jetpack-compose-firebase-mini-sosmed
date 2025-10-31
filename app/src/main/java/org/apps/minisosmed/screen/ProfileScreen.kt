@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
@@ -49,19 +50,20 @@ import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
 import org.apps.minisosmed.viewmodel.AuthViewModel
 import org.apps.minisosmed.viewmodel.ChatViewModel
+import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel,
-    chatViewModel: ChatViewModel,
     modifier: Modifier,
     userId: String? = null
 ){
+    val userViewModel: UserViewModel = hiltViewModel()
+    val chatViewModel: ChatViewModel = hiltViewModel()
+    val authViewModel: AuthViewModel = hiltViewModel()
+
     val userState by userViewModel.user.collectAsState()
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
     LaunchedEffect(userId) {
         if (userId != null) {

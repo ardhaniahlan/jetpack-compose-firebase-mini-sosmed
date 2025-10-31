@@ -5,6 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -12,8 +13,10 @@ import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.state.AuthUiState
 import org.apps.minisosmed.repository.IAuthRepository
 import org.apps.minisosmed.state.ViewState
+import javax.inject.Inject
 
-class AuthViewModel(private val authRepository: IAuthRepository) : ViewModel(){
+@HiltViewModel
+class AuthViewModel @Inject constructor(private val authRepository: IAuthRepository) : ViewModel(){
 
     private val _uiState = mutableStateOf(AuthUiState())
     val uiState: State<AuthUiState> = _uiState

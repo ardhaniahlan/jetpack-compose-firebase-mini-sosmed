@@ -8,6 +8,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +19,10 @@ import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.UpdateUserUiState
 import org.apps.minisosmed.state.ViewState
+import javax.inject.Inject
 
-class UserViewModel (
+@HiltViewModel
+class UserViewModel @Inject constructor(
     private  val userRepository: IUserRepository,
     private val imageRepository: ImageRepository
 ): ViewModel() {

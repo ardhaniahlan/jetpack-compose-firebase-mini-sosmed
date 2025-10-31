@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.relation.CommentWithUser
@@ -53,10 +54,10 @@ import org.apps.minisosmed.viewmodel.CommentViewModel
 @Composable
 fun CommentBottomSheet(
     postId: String,
-    commentViewModel: CommentViewModel,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val commentViewModel: CommentViewModel = hiltViewModel()
     val commentState by commentViewModel.commentState.collectAsState()
     val comments = commentViewModel.commentsPerPost[postId] ?: emptyList()
     var commentText by remember { mutableStateOf("") }

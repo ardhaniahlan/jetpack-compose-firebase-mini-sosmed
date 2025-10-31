@@ -1,11 +1,13 @@
 package org.apps.minisosmed.navigation
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,20 +24,11 @@ import org.apps.minisosmed.screen.ProfileScreen
 import org.apps.minisosmed.screen.RegisterScreen
 import org.apps.minisosmed.screen.SearchScreen
 import org.apps.minisosmed.screen.SplashScreen
-import org.apps.minisosmed.viewmodel.AuthViewModel
-import org.apps.minisosmed.viewmodel.ChatViewModel
-import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
-import org.apps.minisosmed.viewmodel.UserViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MyNavigation(
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel,
-    postViewModel: PostViewModel,
-    chatViewModel: ChatViewModel,
-    commentViewModel: CommentViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState,
     navController: NavHostController,
@@ -45,30 +38,46 @@ fun MyNavigation(
         startDestination = "splash",
         builder = {
             composable("login"){
-                LoginScreen(navController, authViewModel, modifier, snackbarHostState)
+                LoginScreen(navController, modifier, snackbarHostState)
             }
             composable("register"){
-                RegisterScreen(navController, authViewModel, modifier, snackbarHostState)
+                RegisterScreen(navController, modifier, snackbarHostState)
             }
             composable("splash"){
                 SplashScreen(navController)
             }
             composable("editprofile"){
-                EditProfileScreen(navController, userViewModel, modifier, snackbarHostState)
+                EditProfileScreen(navController, modifier, snackbarHostState)
             }
 
             // Bottom Bar
             composable("home"){
-                HomeScreen(navController, postViewModel, commentViewModel,modifier, snackbarHostState )
+                HomeScreen(navController, modifier, snackbarHostState )
             }
-            composable("addpost"){
-                AddPostScreen(navController, postViewModel, modifier, snackbarHostState)
+            composable("addpost") {
+                val postViewModel: PostViewModel = hiltViewModel()
+                postViewModel.resetPostState()
+                AddPostScreen(navController, modifier, snackbarHostState, postViewModel)
             }
             composable("search"){
-                SearchScreen(navController, userViewModel)
+                SearchScreen(navController)
             }
             composable("profile"){
-                ProfileScreen(navController, authViewModel, userViewModel,chatViewModel, modifier)
+                ProfileScreen(navController, modifier)
+            }
+
+            composable(
+                route = "editpost/{postId}",
+                arguments = listOf(navArgument("postId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getString("postId")!!
+                val postViewModel: PostViewModel = hiltViewModel()
+
+                LaunchedEffect(postId) {
+                    postViewModel.loadPostById(postId)
+                }
+
+                AddPostScreen(navController, modifier, snackbarHostState, postViewModel)
             }
 
             composable(
@@ -85,47 +94,14 @@ fun MyNavigation(
 
                 ProfileScreen(
                     navController = navController,
-                    authViewModel = authViewModel,
-                    userViewModel = userViewModel,
-                    chatViewModel = chatViewModel,
                     modifier = modifier,
                     userId = userId
-                )
-            }
-
-            composable(
-                route = "addpost?postId={postId}",
-                arguments = listOf(
-                    navArgument("postId") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
-            ) { backStackEntry ->
-                val postId = backStackEntry.arguments?.getString("postId")
-
-                LaunchedEffect(postId) {
-                    if (postId != null) {
-                        val post = postViewModel.uiState.value.postsWithUser.find { it.post.id == postId }?.post
-                        post?.let { postViewModel.startEditPost(it) }
-                    } else {
-                        postViewModel.resetPostState()
-                    }
-                }
-
-                AddPostScreen(
-                    navController = navController,
-                    postViewModel = postViewModel,
-                    modifier = modifier,
-                    snackbarHostState = snackbarHostState
                 )
             }
 
             composable("chatList") {
                 ChatListScreen(
                     navController = navController,
-                    chatViewModel = chatViewModel,
                     currentUserId = FirebaseAuth.getInstance().currentUser?.uid!!
                 )
             }
@@ -138,7 +114,6 @@ fun MyNavigation(
                 ChatScreen(
                     chatId = chatId,
                     currentUserId = FirebaseAuth.getInstance().currentUser?.uid!!,
-                    chatViewModel = chatViewModel
                 )
             }
         }

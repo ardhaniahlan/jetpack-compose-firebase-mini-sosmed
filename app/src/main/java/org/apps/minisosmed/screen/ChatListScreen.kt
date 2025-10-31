@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -37,9 +38,9 @@ import org.apps.minisosmed.viewmodel.ChatViewModel
 @Composable
 fun ChatListScreen(
     navController: NavController,
-    chatViewModel: ChatViewModel,
     currentUserId: String,
 ) {
+    val chatViewModel: ChatViewModel = hiltViewModel()
     val chats by chatViewModel.chatsWithUser.collectAsState()
 
     LaunchedEffect(Unit) {

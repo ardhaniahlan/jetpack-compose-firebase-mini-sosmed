@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
@@ -57,8 +58,10 @@ import org.apps.minisosmed.viewmodel.UserViewModel
 @Composable
 fun SearchScreen(
     navController: NavController,
-    userViewModel: UserViewModel
 ) {
+
+    val userViewModel: UserViewModel = hiltViewModel()
+
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
 

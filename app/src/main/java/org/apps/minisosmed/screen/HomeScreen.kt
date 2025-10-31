@@ -51,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,11 +69,11 @@ import org.apps.minisosmed.viewmodel.UserViewModel
 @Composable
 fun HomeScreen(
     navController: NavController,
-    postViewModel: PostViewModel,
-    commentViewModel: CommentViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState,
 ) {
+    val postViewModel: PostViewModel = hiltViewModel()
+
     val uiState by postViewModel.uiState
     val userState by postViewModel.user.collectAsState()
     val postState by postViewModel.postState.collectAsState()
@@ -143,7 +144,6 @@ fun HomeScreen(
                         postViewModel.deletePost(postId)
                     },
                     navController = navController,
-                    commentViewModel = commentViewModel,
                     onShowComments = { postId ->
                         selectedPostId = postId
                         showCommentSheet = true
@@ -167,7 +167,6 @@ fun HomeScreen(
             ) {
                 CommentBottomSheet(
                     postId = selectedPostId!!,
-                    commentViewModel = commentViewModel,
                     onDismiss = {
                         showCommentSheet = false
                         selectedPostId = null
@@ -186,7 +185,6 @@ fun HomeScreenContent(
     currentUserId: String?,
     onDeletePost: (String) -> Unit,
     navController: NavController,
-    commentViewModel: CommentViewModel,
     onShowComments: (String) -> Unit
 ) {
 
@@ -236,10 +234,9 @@ fun HomeScreenContent(
                             post = item.post,
                             isOwner = item.post.userId == currentUserId,
                             onEditPost = { post ->
-                                navController.navigate("addpost?postId=${post.id}")
+                                navController.navigate("editpost/${post.id}")
                             },
                             onDeleteClick = onDeletePost,
-                            commentViewModel = commentViewModel,
                             onShowComments = onShowComments
                         )
                     }
@@ -256,7 +253,6 @@ fun PostItem(
     isOwner: Boolean,
     onEditPost: (Post) -> Unit,
     onDeleteClick: (String) -> Unit,
-    commentViewModel: CommentViewModel,
     onShowComments: (String) -> Unit
 ) {
 

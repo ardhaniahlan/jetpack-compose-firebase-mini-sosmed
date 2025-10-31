@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
@@ -48,10 +49,10 @@ import org.apps.minisosmed.viewmodel.ChatViewModel
 
 @Composable
 fun ChatScreen(
-    chatViewModel: ChatViewModel,
     chatId: String,
     currentUserId: String,
 ) {
+    val chatViewModel: ChatViewModel = hiltViewModel()
     val messages by chatViewModel.messages.collectAsState()
     var text by remember { mutableStateOf("") }
 

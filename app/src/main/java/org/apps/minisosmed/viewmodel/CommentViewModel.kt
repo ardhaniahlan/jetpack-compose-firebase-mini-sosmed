@@ -9,12 +9,15 @@ import org.apps.minisosmed.repository.ICommentRepository
 import org.apps.minisosmed.repository.IUserRepository
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateMapOf
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.apps.minisosmed.state.CommentUiState
 import org.apps.minisosmed.state.ViewState
+import javax.inject.Inject
 
-class CommentViewModel(
+@HiltViewModel
+class CommentViewModel @Inject constructor(
     private val commentRepository: ICommentRepository,
     private val userRepository: IUserRepository
 ) : ViewModel() {

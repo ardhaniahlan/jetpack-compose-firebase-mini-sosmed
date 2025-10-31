@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import org.apps.minisosmed.di.Injection
+import dagger.hilt.android.AndroidEntryPoint
 import org.apps.minisosmed.navigation.MyBottomNavBar
 import org.apps.minisosmed.navigation.MyNavigation
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
@@ -27,27 +27,12 @@ import org.apps.minisosmed.viewmodel.ChatViewModel
 import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 import org.apps.minisosmed.viewmodel.UserViewModel
-import org.apps.minisosmed.viewmodel.ViewModelFactory
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val factory = ViewModelFactory(
-            Injection.provideAuthRepository(),
-            Injection.provideUserRepository(),
-            Injection.providePostRepository(),
-            Injection.provideImageRepository(),
-            Injection.provideCommentRepository(),
-            Injection.provideChatRepository()
-        )
-
-        val authViewModel: AuthViewModel by viewModels { factory }
-        val userViewModel: UserViewModel by viewModels { factory }
-        val postViewModel: PostViewModel by viewModels { factory }
-        val commentViewModel: CommentViewModel by viewModels { factory }
-        val chatViewModel: ChatViewModel by viewModels { factory }
 
         setContent {
             val snackbarHostState = remember { SnackbarHostState() }
@@ -70,11 +55,6 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     MyNavigation(
                         modifier = Modifier.padding(innerPadding),
-                        authViewModel = authViewModel,
-                        userViewModel = userViewModel,
-                        postViewModel = postViewModel,
-                        chatViewModel = chatViewModel,
-                        commentViewModel = commentViewModel,
                         snackbarHostState = snackbarHostState,
                         navController = navController
                     )

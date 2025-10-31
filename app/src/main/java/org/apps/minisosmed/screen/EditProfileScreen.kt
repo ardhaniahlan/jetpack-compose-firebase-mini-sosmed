@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -61,10 +63,14 @@ import org.apps.minisosmed.viewmodel.UserViewModel
 @Composable
 fun EditProfileScreen(
     navController: NavController,
-    userViewModel: UserViewModel,
     modifier: Modifier,
     snackbarHostState: SnackbarHostState
 ){
+    val parentEntry = remember(navController.currentBackStackEntry) {
+        navController.getBackStackEntry("profile")
+    }
+    val userViewModel: UserViewModel = hiltViewModel(parentEntry)
+
 
     val uiState by userViewModel.uiState
     val userState by userViewModel.user.collectAsState()
@@ -99,9 +105,7 @@ fun EditProfileScreen(
                     onBioChange = userViewModel::onBioChange,
                     onPickImageClick = { imagePickerLauncher.launch("image/*") },
                     onBackScreen = {
-                        navController.navigate("profile") {
-                            popUpTo("editprofile") { inclusive = true }
-                        }
+                        navController.popBackStack()
                     },
                     onSaveEdit = { userViewModel.updateProfile(context) }
                 )
@@ -138,11 +142,12 @@ fun EditProfileScreen(
                     message = "Update berhasil",
                     actionLabel = "OK"
                 )
+                userViewModel.resetUpdateState()
+                userViewModel.refreshUser()
                 navController.navigate("profile") {
                     popUpTo("profile") { inclusive = true }
                     launchSingleTop = true
                 }
-                userViewModel.resetUpdateState()
             }
         }
 

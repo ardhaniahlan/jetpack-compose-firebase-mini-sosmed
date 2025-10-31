@@ -2,6 +2,7 @@ package org.apps.minisosmed.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,9 +11,11 @@ import org.apps.minisosmed.entity.Message
 import org.apps.minisosmed.entity.Chat
 import org.apps.minisosmed.entity.relation.ChatWithUser
 import org.apps.minisosmed.repository.IChatRepository
+import javax.inject.Inject
 import kotlin.jvm.java
 
-class ChatViewModel(
+@HiltViewModel
+class ChatViewModel @Inject constructor(
     private val chatRepository: IChatRepository
 ) : ViewModel() {
 

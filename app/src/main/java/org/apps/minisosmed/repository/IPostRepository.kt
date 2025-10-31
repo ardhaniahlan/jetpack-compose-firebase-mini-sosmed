@@ -8,4 +8,5 @@ interface IPostRepository {
     suspend fun getAllPost(): Flow<List<Post>>
     suspend fun deletePost(postId: String): Result<Unit>
     suspend fun updatePost(postId: String, newDescription: String): Result<Unit>
+    suspend fun getPostById(postId: String): Result<Post>
 }

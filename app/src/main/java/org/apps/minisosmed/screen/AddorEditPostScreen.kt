@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -52,15 +53,16 @@ import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
 import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.MiniSosmedTheme
+import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AddPostScreen(
     navController: NavController,
-    postViewModel: PostViewModel,
     modifier: Modifier,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    postViewModel: PostViewModel
 ){
     val uiState by postViewModel.uiState
     val postState by postViewModel.postState.collectAsState()
@@ -84,7 +86,6 @@ fun AddPostScreen(
                 } else {
                     postViewModel.createPost(context)
                 }
-                postViewModel.resetPostState()
             },
             onResetPost = { postViewModel.clearForm() }
         )

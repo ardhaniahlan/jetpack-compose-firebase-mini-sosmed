@@ -22,9 +22,12 @@ import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
 import androidx.core.net.toUri
+import dagger.hilt.android.lifecycle.HiltViewModel
 import org.apps.minisosmed.state.ViewState
+import javax.inject.Inject
 
-class PostViewModel(
+@HiltViewModel
+class PostViewModel @Inject constructor(
     private val postRepository: IPostRepository,
     private val userRepository: IUserRepository,
     private val imageRepository: ImageRepository,
@@ -38,6 +41,16 @@ class PostViewModel(
 
     private val _uiState = mutableStateOf(PostUiState())
     val uiState: State<PostUiState> = _uiState
+
+    fun loadPostById(postId: String) {
+        viewModelScope.launch {
+            val result = postRepository.getPostById(postId)
+            result.onSuccess { post ->
+                startEditPost(post)
+            }
+        }
+    }
+
 
     fun loadCurrentUser() {
         viewModelScope.launch {

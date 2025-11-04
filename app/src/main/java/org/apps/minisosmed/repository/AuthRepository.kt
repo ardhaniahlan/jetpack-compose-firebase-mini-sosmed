@@ -9,6 +9,12 @@ import com.google.firebase.auth.userProfileChangeRequest
 import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.User
 
+interface IAuthRepository {
+    suspend fun register(email: String, password: String, displayName: String): Result<User>
+    suspend fun login(email: String, password: String): Result<User>
+    suspend fun logout()
+}
+
 class AuthRepositoryImpl (
     private val firebaseAuth: FirebaseAuth
 ) : IAuthRepository{

@@ -108,12 +108,16 @@ fun MyNavigation(
 
             composable(
                 route = "chat/{chatId}",
-                arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("chatId") { type = NavType.StringType },
+                )
             ) { backStackEntry ->
                 val chatId = backStackEntry.arguments?.getString("chatId")!!
+
                 ChatScreen(
                     chatId = chatId,
-                    currentUserId = FirebaseAuth.getInstance().currentUser?.uid!!,
+                    currentUserId = FirebaseAuth.getInstance().currentUser!!.uid,
+                    navController = navController
                 )
             }
         }

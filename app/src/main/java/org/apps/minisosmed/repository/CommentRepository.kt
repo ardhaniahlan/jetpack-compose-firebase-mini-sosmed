@@ -11,6 +11,11 @@ import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.Comment
 import kotlin.jvm.java
 
+interface ICommentRepository {
+    suspend fun addComment(postId: String, text: String): Result<Comment>
+    suspend fun getCommentsByPost(postId: String): Flow<List<Comment>>
+}
+
 class CommentRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()

@@ -105,7 +105,9 @@ fun ProfileScreen(
                     onMessageClick = {
                         CoroutineScope(Dispatchers.Main).launch {
                             val chatId = chatViewModel.openOrCreateChat(userId!!)
-                            navController.navigate("chat/$chatId")
+                            if (chatId != null) {
+                                navController.navigate("chat/$chatId")
+                            }
                         }
                     },
                     isCurrentUser = (userId == null)

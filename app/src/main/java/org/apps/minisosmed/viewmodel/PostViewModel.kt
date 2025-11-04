@@ -23,6 +23,7 @@ import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
 import androidx.core.net.toUri
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.asStateFlow
 import org.apps.minisosmed.state.ViewState
 import javax.inject.Inject
 
@@ -34,10 +35,10 @@ class PostViewModel @Inject constructor(
 ): ViewModel() {
 
     private val _user = MutableStateFlow<ViewState<User?>>(ViewState.Idle)
-    val user : StateFlow<ViewState<User?>> = _user
+    val user = _user.asStateFlow()
 
     private val _postState = MutableStateFlow<ViewState<Unit>>(ViewState.Idle)
-    val postState: StateFlow<ViewState<Unit>> = _postState
+    val postState = _postState.asStateFlow()
 
     private val _uiState = mutableStateOf(PostUiState())
     val uiState: State<PostUiState> = _uiState
@@ -47,10 +48,12 @@ class PostViewModel @Inject constructor(
             val result = postRepository.getPostById(postId)
             result.onSuccess { post ->
                 startEditPost(post)
+                _postState.value = ViewState.Idle
+            } .onFailure {
+                _postState.value = ViewState.Error("Post tidak ditemukan")
             }
         }
     }
-
 
     fun loadCurrentUser() {
         viewModelScope.launch {

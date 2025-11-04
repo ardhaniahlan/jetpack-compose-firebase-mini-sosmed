@@ -29,6 +29,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,7 +91,6 @@ fun AddPostScreen(
             onResetPost = { postViewModel.clearForm() }
         )
 
-
         when (val state = postState){
             is ViewState.Loading -> {
                 Box(
@@ -104,11 +104,12 @@ fun AddPostScreen(
             }
 
             is ViewState.Success -> {
-                LaunchedEffect(Unit) {
-                    snackbarHostState.showSnackbar(
-                        message = "Post Berhasil",
-                        actionLabel = "OK"
-                    )
+                LaunchedEffect(state) {
+                    if (uiState.mode == PostMode.EDIT) {
+                        snackbarHostState.showSnackbar("Update Berhasil", "OK")
+                    } else {
+                        snackbarHostState.showSnackbar("Post Berhasil", "OK")
+                    }
 
                     postViewModel.clearForm()
                     postViewModel.resetPostState()

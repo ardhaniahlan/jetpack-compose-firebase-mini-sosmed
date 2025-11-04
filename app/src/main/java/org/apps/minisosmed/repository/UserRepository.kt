@@ -9,6 +9,14 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
+interface IUserRepository {
+    suspend fun updateProfile(displayName: String?, bio: String?, photoUri: String?): Result<User>
+    suspend fun getCurrentUser(): Result<User>
+    suspend fun getUserById(userId: String): Result<User>
+    suspend fun getAllUsers(): Result<List<User>>
+    fun searchUsersByName(query: String, currentUser: String): Flow<List<User>>
+}
+
 class UserRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()

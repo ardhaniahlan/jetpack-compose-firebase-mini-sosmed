@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.User
@@ -27,16 +28,16 @@ class UserViewModel @Inject constructor(
     private val imageRepository: ImageRepository
 ): ViewModel() {
     private val _user = MutableStateFlow<ViewState<User?>>(ViewState.Idle)
-    val user : StateFlow<ViewState<User?>> = _user
+    val user = _user.asStateFlow()
 
     private val _updateState = MutableStateFlow<ViewState<Unit>>(ViewState.Idle)
-    val updateState: StateFlow<ViewState<Unit>> = _updateState
+    val updateState = _updateState.asStateFlow()
 
     private val _uiState = mutableStateOf(UpdateUserUiState())
     val uiState : State<UpdateUserUiState> = _uiState
 
     private val _searchResults = MutableStateFlow<List<User>>(emptyList())
-    val searchResults: StateFlow<List<User>> = _searchResults
+    val searchResults = _searchResults.asStateFlow()
 
     fun searchUser(query: String, currentUser: String) {
         viewModelScope.launch {

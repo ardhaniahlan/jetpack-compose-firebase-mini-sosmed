@@ -1,6 +1,5 @@
 package org.apps.minisosmed.repository
 
-import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -9,6 +8,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import org.apps.minisosmed.entity.Post
+
+interface IPostRepository {
+    suspend fun createPost(description: String?, photoUri: String?): Result<Post>
+    suspend fun getAllPost(): Flow<List<Post>>
+    suspend fun deletePost(postId: String): Result<Unit>
+    suspend fun updatePost(postId: String, newDescription: String): Result<Unit>
+    suspend fun getPostById(postId: String): Result<Post>
+}
 
 class PostRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,

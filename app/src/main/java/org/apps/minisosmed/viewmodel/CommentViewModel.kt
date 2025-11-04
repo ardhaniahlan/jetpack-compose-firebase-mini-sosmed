@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.apps.minisosmed.state.CommentUiState
 import org.apps.minisosmed.state.ViewState
 import javax.inject.Inject
@@ -26,7 +27,7 @@ class CommentViewModel @Inject constructor(
     val commentsPerPost: Map<String, List<CommentWithUser>> get() = _commentsPerPost
 
     private val _commentState = MutableStateFlow<ViewState<Unit>>(ViewState.Idle)
-    val commentState: StateFlow<ViewState<Unit>> = _commentState
+    val commentState = _commentState.asStateFlow()
 
     private val _uiState = mutableStateOf(CommentUiState())
     val uiState: State<CommentUiState> = _uiState

@@ -1,6 +1,5 @@
 package org.apps.minisosmed.repository
 
-import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -18,12 +17,47 @@ import kotlin.jvm.java
 import org.apps.minisosmed.entity.User
 
 
+interface IChatRepository {
+    suspend fun openOrCreateChat(targetUserId: String): Result<String>
+    fun getUserChats(userId: String): Flow<List<Chat>>
+    fun getMessages(chatId: String): Flow<List<Message>>
+    suspend fun sendMessage(chatId: String, text: String): Result<Unit>
+    suspend fun listenToChats(
+        currentUserId: String,
+        onChatsChanged: (List<ChatWithUser>) -> Unit
+    )
+    suspend fun getOtherUserFromChat(chatId: String, currentUserId: String): Result<User>
+}
+
 class ChatRepositoryImpl(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : IChatRepository {
 
     private val chatsRef = firestore.collection("chats")
+
+    override suspend fun getOtherUserFromChat(chatId: String, currentUserId: String): Result<User> {
+        return try {
+            val chatDoc = chatsRef.document(chatId).get().await()
+            val participants = chatDoc.get("participants") as? List<*>
+                ?: return Result.failure(Exception("Participants not found"))
+
+            val otherUserId = participants.firstOrNull { it != currentUserId }
+                ?: return Result.failure(Exception("Other user not found"))
+
+            val userRef = firestore.collection("users").document(otherUserId.toString())
+            val userDoc = userRef.get().await()
+
+            val user = userDoc.toObject(User::class.java)
+                ?: return Result.failure(Exception("User data invalid"))
+
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
 
     override suspend fun openOrCreateChat(targetUserId: String): Result<String> {
         val currentUserId = auth.currentUser?.uid

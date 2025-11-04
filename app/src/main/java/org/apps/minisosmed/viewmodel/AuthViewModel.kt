@@ -1,5 +1,6 @@
 package org.apps.minisosmed.viewmodel
 
+import android.util.Log
 import android.util.Log.e
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.state.AuthUiState
@@ -22,7 +24,7 @@ class AuthViewModel @Inject constructor(private val authRepository: IAuthReposit
     val uiState: State<AuthUiState> = _uiState
 
     private val _authState = MutableStateFlow<ViewState<User>>(ViewState.Idle)
-    val authState: StateFlow<ViewState<User>> = _authState
+    val authState = _authState.asStateFlow()
 
     fun logout() {
         viewModelScope.launch {

@@ -23,7 +23,12 @@ import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
 import androidx.core.net.toUri
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import org.apps.minisosmed.state.UiEvent
 import org.apps.minisosmed.state.ViewState
 import javax.inject.Inject
 
@@ -34,23 +39,24 @@ class PostViewModel @Inject constructor(
     private val imageRepository: ImageRepository,
 ): ViewModel() {
 
-    private val _user = MutableStateFlow<ViewState<User?>>(ViewState.Idle)
-    val user = _user.asStateFlow()
+    private val _uiState = MutableStateFlow(PostUiState())
+    val uiState = _uiState.asStateFlow()
 
-    private val _postState = MutableStateFlow<ViewState<Unit>>(ViewState.Idle)
-    val postState = _postState.asStateFlow()
+    private val _eventFlow = MutableSharedFlow<UiEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
 
-    private val _uiState = mutableStateOf(PostUiState())
-    val uiState: State<PostUiState> = _uiState
+    init {
+        loadCurrentUser()
+    }
 
     fun loadPostById(postId: String) {
+        _uiState.update { it.copy(mode = PostMode.EDIT) }
         viewModelScope.launch {
             val result = postRepository.getPostById(postId)
             result.onSuccess { post ->
                 startEditPost(post)
-                _postState.value = ViewState.Idle
             } .onFailure {
-                _postState.value = ViewState.Error("Post tidak ditemukan")
+                //
             }
         }
     }
@@ -59,10 +65,15 @@ class PostViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.getCurrentUser()
                 .onSuccess { user ->
-                    _user.value = ViewState.Success(user)
+                    _uiState.update {
+                        it.copy(userState = ViewState.Success(user))
+                    }
+                    loadPost()
                 }
                 .onFailure { e ->
-                    _user.value = ViewState.Error("Gagal memuat user: ${e.message}")
+                    _uiState.update {
+                        it.copy(userState = ViewState.Error("Gagal memuat user: ${e.message}"))
+                    }
                 }
         }
 
@@ -70,7 +81,7 @@ class PostViewModel @Inject constructor(
 
     fun loadPost() {
         viewModelScope.launch {
-            _user.value = ViewState.Loading
+            _uiState.update { it.copy(postsState = ViewState.Loading) }
 
             try {
                 val usersResult = userRepository.getAllUsers()
@@ -85,10 +96,14 @@ class PostViewModel @Inject constructor(
                         }
                     }
 
-                    _uiState.value = _uiState.value.copy(postsWithUser = enrichedPosts)
+                    _uiState.update {
+                        it.copy(postsState = ViewState.Success(enrichedPosts))
+                    }
                 }
             } catch (e: Exception){
-                _user.value = ViewState.Error("Terjadi kesalahan: ${e.message}")
+                _uiState.update {
+                    it.copy(postsState = ViewState.Error("Terjadi kesalahan: ${e.message}"))
+                }
             }
 
         }
@@ -104,12 +119,14 @@ class PostViewModel @Inject constructor(
             normalized.toUri()
         }
 
-        _uiState.value = _uiState.value.copy(
-            mode = PostMode.EDIT,
-            postBeingEditedId = post.id,
-            description = post.description ?: "",
-            photoUrl = photoUriForUi
-        )
+        _uiState.update {
+            it.copy(
+                mode = PostMode.EDIT,
+                postBeingEditedId = post.id,
+                description = post.description ?: "",
+                photoUrl = photoUriForUi
+            )
+        }
     }
 
     fun updatePost() {
@@ -117,7 +134,8 @@ class PostViewModel @Inject constructor(
         val postId = current.postBeingEditedId ?: return
 
         viewModelScope.launch {
-            _postState.value = ViewState.Loading
+            _uiState.update { it.copy(updatePostState = ViewState.Loading) }
+
             try {
                 val result = postRepository.updatePost(
                     postId = postId,
@@ -125,25 +143,32 @@ class PostViewModel @Inject constructor(
                 )
 
                 result.onSuccess {
-                    val updatedList = _uiState.value.postsWithUser.map {
+                    val updatedPosts = _uiState.value.postsWithUser.map {
                         if (it.post.id == postId)
                             it.copy(post = it.post.copy(description = current.description))
                         else it
                     }
 
-                    _uiState.value = _uiState.value.copy(
-                        mode = PostMode.EDIT,
-                        postBeingEditedId = null,
-                        postsWithUser = updatedList
-                    )
-
-                    _postState.value = ViewState.Success(Unit)
+                    _uiState.update {
+                        it.copy(
+                            postsState = ViewState.Success(updatedPosts),
+                            mode = PostMode.EDIT,
+                            postBeingEditedId = null,
+                            updatePostState = ViewState.Success(Unit)
+                        )
+                    }
+                    _eventFlow.emit(UiEvent.ShowSnackbar("Post berhasil diupdate"))
+                    _eventFlow.emit(UiEvent.Navigate)
                 }.onFailure {
-                    _postState.value = ViewState.Error("Gagal memperbarui post: ${it.message}")
+                    _uiState.update {
+                        it.copy(updatePostState = ViewState.Error("Gagal memperbarui post: $it"))
+                    }
                 }
 
             } catch (e: Exception) {
-                _postState.value = ViewState.Error("Terjadi kesalahan: ${e.message}")
+                _uiState.update {
+                    it.copy(updatePostState = ViewState.Error("Terjadi kesalahan: ${e.message}"))
+                }
             }
         }
     }
@@ -151,71 +176,112 @@ class PostViewModel @Inject constructor(
 
     fun deletePost(postId: String) {
         viewModelScope.launch {
-            _postState.value = ViewState.Loading
+            _uiState.update { it.copy(deletePostState = ViewState.Loading) }
 
-            val result = postRepository.deletePost(postId)
-            if (result.isSuccess) {
-                val updatedList = _uiState.value.postsWithUser.filterNot { it.post.id == postId }
-                _uiState.value = _uiState.value.copy(postsWithUser = updatedList)
-                _postState.value = ViewState.Success(Unit)
-            } else {
-                _postState.value = ViewState.Error(
-                    "Gagal menghapus post: ${result.exceptionOrNull()?.message}"
-                )
-            }
+            postRepository.deletePost(postId)
+                .onSuccess {
+                    val currentPosts = when (val state = uiState.value.postsState) {
+                        is ViewState.Success -> state.data
+                        else -> emptyList()
+                    }
+
+                    val updatedPosts = currentPosts.filterNot { it.post.id == postId }
+                    _uiState.update {
+                        it.copy(
+                            postsState = ViewState.Success(updatedPosts),
+                            deletePostState = ViewState.Success(Unit)
+                        )
+                    }
+                    _eventFlow.emit(UiEvent.ShowSnackbar("Post berhasil dihapus"))
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(deletePostState = ViewState.Error("Gagal menghapus post: $it"))
+                    }
+                }
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun createPost(context: Context){
-        val current = _uiState.value
+    fun createPost(context: Context) {
         viewModelScope.launch {
-            _postState.value = ViewState.Loading
+            _uiState.update { it.copy(createPostState = ViewState.Loading) }
 
             try {
                 val photoBase64 = withContext(Dispatchers.IO) {
-                    current.photoUrl?.let { uri ->
+                    uiState.value.photoUrl?.let { uri ->
                         imageRepository.uriToBase64(context, uri)
                     }
                 }
 
-                val createPost = postRepository.createPost(
-                    description = current.description,
+                postRepository.createPost(
+                    description = uiState.value.description,
                     photoUri = photoBase64
-                )
-
-                createPost.onSuccess { newPost ->
-                    val user = (_user.value as? ViewState.Success)?.data
-                    if (user != null) {
-                        _uiState.value = _uiState.value.copy(
-                            postsWithUser = _uiState.value.postsWithUser + PostWithUser(newPost, user),
-                            description = "",
-                            photoUrl = null
-                        )
+                ).onSuccess { newPost ->
+                    // Update posts list
+                    val currentPosts = when (val state = uiState.value.postsState) {
+                        is ViewState.Success -> state.data
+                        else -> emptyList()
                     }
-                    _postState.value = ViewState.Success(Unit)
+
+                    val currentUser = when (val state = uiState.value.userState) {
+                        is ViewState.Success -> state.data
+                        else -> null
+                    }
+
+                    currentUser?.let { user ->
+                        val updatedPosts = currentPosts + PostWithUser(newPost, user)
+                        _uiState.update {
+                            it.copy(
+                                postsState = ViewState.Success(updatedPosts),
+                                description = "",
+                                photoUrl = null,
+                                createPostState = ViewState.Success(Unit)
+                            )
+                        }
+                    }
+
+                    _eventFlow.emit(UiEvent.ShowSnackbar("Post berhasil dibuat"))
+                    _eventFlow.emit(UiEvent.Navigate)
                 }.onFailure {
-                    _postState.value = ViewState.Error("Gagal membuat post: ${it.message}")
+                    _uiState.update {
+                        it.copy(createPostState = ViewState.Error("Gagal membuat post: $it"))
+                    }
                 }
-            } catch (e: Exception){
-                _postState.value = ViewState.Error("Terjadi kesalahan: ${e.message}")
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(createPostState = ViewState.Error("Terjadi kesalahan: ${e.message}"))
+                }
             }
         }
     }
 
     fun onDescriptionChange(newDescription: String) {
-        _uiState.value = _uiState.value.copy(description = newDescription)
+        _uiState.update { it.copy(description = newDescription) }
     }
 
     fun onPhotoPicked(uri: Uri) {
-        _uiState.value = _uiState.value.copy(photoUrl = uri)
+        _uiState.update { it.copy(photoUrl = uri) }
     }
 
     fun resetPostState() {
-        _postState.value = ViewState.Idle
+        _uiState.update {
+            it.copy(
+                createPostState = ViewState.Idle,
+                updatePostState = ViewState.Idle,
+                deletePostState = ViewState.Idle
+            )
+        }
     }
 
     fun clearForm() {
-        _uiState.value = PostUiState()
+        _uiState.update {
+            it.copy(
+                description = "",
+                photoUrl = null,
+                mode = PostMode.ADD,
+                postBeingEditedId = null
+            )
+        }
     }
 }

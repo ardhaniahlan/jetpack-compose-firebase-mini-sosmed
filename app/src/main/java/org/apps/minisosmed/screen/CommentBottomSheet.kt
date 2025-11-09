@@ -58,8 +58,10 @@ fun CommentBottomSheet(
     modifier: Modifier = Modifier
 ) {
     val commentViewModel: CommentViewModel = hiltViewModel()
-    val commentState by commentViewModel.commentState.collectAsState()
-    val comments = commentViewModel.commentsPerPost[postId] ?: emptyList()
+
+    val uiState by commentViewModel.uiState.collectAsState()
+    val comments = uiState.comments
+
     var commentText by remember { mutableStateOf("") }
 
     LaunchedEffect(postId) {
@@ -88,7 +90,7 @@ fun CommentBottomSheet(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        when (val state = commentState) {
+        when (val state = uiState.commentState) {
             is ViewState.Loading -> {
                 Box(
                     modifier = Modifier
@@ -144,7 +146,7 @@ fun CommentBottomSheet(
                 onValueChange = { commentText = it },
                 placeholder = { Text("Tambahkan komentar...") },
                 modifier = Modifier.weight(1f),
-                enabled = commentState !is ViewState.Loading
+                enabled = uiState.commentState !is ViewState.Loading
             )
 
             IconButton(
@@ -154,9 +156,9 @@ fun CommentBottomSheet(
                         commentText = ""
                     }
                 },
-                enabled = commentText.isNotBlank() && commentState !is ViewState.Loading
+                enabled = commentText.isNotBlank() && uiState.commentState !is ViewState.Loading
             ) {
-                if (commentState is ViewState.Loading) {
+                if (uiState.commentState is ViewState.Loading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
                     Icon(Icons.Default.Send, contentDescription = "Kirim")

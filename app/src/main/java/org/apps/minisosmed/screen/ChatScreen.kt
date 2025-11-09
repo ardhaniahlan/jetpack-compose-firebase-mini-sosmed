@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.formatTimestamp
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.ChatViewModel
 
 @Composable
@@ -69,22 +70,40 @@ fun ChatScreen(
     navController: NavController
 ) {
     val chatViewModel: ChatViewModel = hiltViewModel()
-    val messages by chatViewModel.messages.collectAsState()
+    val uiState by chatViewModel.uiState.collectAsState()
     var text by remember { mutableStateOf("") }
-    val chatUser by chatViewModel.chatUser.collectAsState()
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(chatId) {
         chatViewModel.loadChatUser(chatId, currentUserId)
-        chatViewModel.listenToMessages(chatId)
+        chatViewModel.loadMessages(chatId)
     }
 
-    LaunchedEffect(messages.size) {
-        coroutineScope.launch {
-            listState.animateScrollToItem(messages.size.coerceAtLeast(1) - 1)
+    LaunchedEffect(uiState.messagesState) {
+        when (val state = uiState.messagesState) {
+            is ViewState.Success -> {
+                val messages = state.data
+                if (messages.isNotEmpty()) {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(messages.size - 1)
+                    }
+                }
+            }
+            else -> {}
         }
+    }
+
+    val user = when (val state = uiState.chatUserState) {
+        is ViewState.Success -> state.data
+        else -> null
+    }
+
+    // Extract messages data dari messagesState
+    val messages = when (val state = uiState.messagesState) {
+        is ViewState.Success -> state.data
+        else -> emptyList()
     }
 
     Column(
@@ -112,9 +131,9 @@ fun ChatScreen(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            val bitmap by produceState<Bitmap?>(initialValue = null, key1 = chatUser?.photoUrl) {
+            val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user?.photoUrl) {
                 value = withContext(Dispatchers.IO) {
-                    chatUser?.photoUrl?.let { ImageRepository().base64ToBitmap(it) }
+                    user?.photoUrl?.let { ImageRepository().base64ToBitmap(it) }
                 }
             }
 
@@ -132,7 +151,7 @@ fun ChatScreen(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            chatUser?.displayName?.let {
+            user?.displayName?.let {
                 Text(
                     text = it,
                     fontSize = 16.sp,

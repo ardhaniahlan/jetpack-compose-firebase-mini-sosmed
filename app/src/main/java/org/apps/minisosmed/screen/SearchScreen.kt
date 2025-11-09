@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +54,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,17 +64,16 @@ fun SearchScreen(
 ) {
 
     val userViewModel: UserViewModel = hiltViewModel()
+    val uiState by userViewModel.uiState.collectAsState()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
-
     val focusRequester = remember { FocusRequester() }
+
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
-
-    val searchResults by userViewModel.searchResults.collectAsState()
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     LaunchedEffect(query) {
         if (query.isNotBlank()) {
@@ -99,70 +101,96 @@ fun SearchScreen(
             .fillMaxSize()
             .focusRequester(focusRequester)
     ) {
-        when {
-            query.isBlank() -> {
+        when (val state = uiState.searchUser) {
+            is ViewState.Idle -> {
+                if (query.isBlank()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Ketik nama pengguna untuk mencari")
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            is ViewState.Loading -> {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Ketik nama pengguna untuk mencari")
+                    CircularProgressIndicator()
                 }
             }
 
-            searchResults.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("User tidak ditemukan")
-                }
-            }
+            is ViewState.Success -> {
+                val users = state.data
+                if (users.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("User tidak ditemukan")
+                    }
+                } else {
+                    LazyColumn {
+                        items(users) { user ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        navController.navigate("profile/${user.id}")
+                                    }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                user.photoUrl?.let { base64 ->
+                                    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user.photoUrl) {
+                                        value = withContext(Dispatchers.IO) {
+                                            ImageRepository().base64ToBitmap(base64)
+                                        }
+                                    }
 
-            else -> {
-                LazyColumn {
-                    items(searchResults) { user ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    navController.navigate("profile/${user.id}")
-                                    Log.d("SearchScreen", "Navigasi ke profile userId=${user.id}")
-
-                                }
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            user.photoUrl?.let { base64 ->
-                                val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user.photoUrl) {
-                                    value = withContext(Dispatchers.IO) {
-                                        user.photoUrl.let { ImageRepository().base64ToBitmap(it) }
+                                    bitmap?.let {
+                                        Image(
+                                            bitmap = it.asImageBitmap(),
+                                            contentDescription = "Profile Picture",
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                        )
                                     }
                                 }
 
-                                bitmap?.let {
-                                    Image(
-                                        bitmap = it.asImageBitmap(),
-                                        contentDescription = "Profile Picture",
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                    )
-                                }
-                            }
+                                Spacer(modifier = Modifier.width(12.dp))
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column {
-                                user.displayName?.let {
-                                    Text(
-                                        text = it,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 16.sp
-                                    )
+                                Column {
+                                    user.displayName?.let {
+                                        Text(it, fontWeight = FontWeight.Medium, fontSize = 16.sp)
+                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
+
+            is ViewState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.message,
+                        color = Color.Red,
+                        fontSize = 14.sp
+                    )
                 }
             }
         }

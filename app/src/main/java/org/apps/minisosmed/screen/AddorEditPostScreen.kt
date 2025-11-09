@@ -9,10 +9,8 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,16 +18,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,10 +46,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -52,9 +55,8 @@ import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.PostMode
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
+import org.apps.minisosmed.state.UiEvent
 import org.apps.minisosmed.state.ViewState
-import org.apps.minisosmed.ui.theme.MiniSosmedTheme
-import org.apps.minisosmed.viewmodel.CommentViewModel
 import org.apps.minisosmed.viewmodel.PostViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -65,8 +67,7 @@ fun AddPostScreen(
     snackbarHostState: SnackbarHostState,
     postViewModel: PostViewModel
 ){
-    val uiState by postViewModel.uiState
-    val postState by postViewModel.postState.collectAsState()
+    val uiState by postViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -76,65 +77,142 @@ fun AddPostScreen(
         }
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AddPostScreenContent(
-            uiState = uiState,
-            onDescriptionChange = postViewModel::onDescriptionChange,
-            onPickImageClick = { imagePickerLauncher.launch("image/*") },
-            onSavePost = {
-                if (uiState.mode == PostMode.EDIT) {
-                    postViewModel.updatePost()
-                } else {
-                    postViewModel.createPost(context)
+    LaunchedEffect(Unit) {
+        postViewModel.eventFlow.collect { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(message = event.message)
                 }
-            },
-            onResetPost = { postViewModel.clearForm() }
-        )
-
-        when (val state = postState){
-            is ViewState.Loading -> {
-                Box(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            is ViewState.Success -> {
-                LaunchedEffect(state) {
-                    if (uiState.mode == PostMode.EDIT) {
-                        snackbarHostState.showSnackbar("Update Berhasil", "OK")
-                    } else {
-                        snackbarHostState.showSnackbar("Post Berhasil", "OK")
-                    }
-
-                    postViewModel.clearForm()
-                    postViewModel.resetPostState()
-
+                UiEvent.Navigate -> {
                     navController.navigate("home") {
                         popUpTo("addpost") { inclusive = true }
                         launchSingleTop = true
                     }
                 }
             }
-
-            is ViewState.Error -> {
-                LaunchedEffect(state.message) {
-                    snackbarHostState.showSnackbar(
-                        message = state.message,
-                        duration = SnackbarDuration.Short,
-                    )
-
-                    postViewModel.clearForm()
-                }
-            }
-
-            else -> Unit
         }
     }
+
+    LaunchedEffect(uiState.createPostState) {
+        when (val state = uiState.createPostState) {
+            is ViewState.Error -> {
+                snackbarHostState.showSnackbar(message = state.message)
+                postViewModel.resetPostState()
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(uiState.updatePostState) {
+        when (val state = uiState.updatePostState) {
+            is ViewState.Error -> {
+                snackbarHostState.showSnackbar(message = state.message)
+                postViewModel.resetPostState()
+            }
+            else -> {}
+        }
+    }
+
+    val isEditMode = uiState.mode == PostMode.EDIT
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            AddPostTopAppBar(
+                isEditMode = isEditMode,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onResetClick = { postViewModel.clearForm() },
+                onSaveClick = {
+                    if (isEditMode) {
+                        postViewModel.updatePost()
+                    } else {
+                        postViewModel.createPost(context)
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(modifier = modifier.fillMaxSize().padding(paddingValues)) {
+            AddPostScreenContent(
+                uiState = uiState,
+                onDescriptionChange = postViewModel::onDescriptionChange,
+                onPickImageClick = { imagePickerLauncher.launch("image/*") },
+                isEditMode = isEditMode,
+            )
+
+            val isActionLoading = uiState.createPostState is ViewState.Loading ||
+                    uiState.updatePostState is ViewState.Loading
+
+            if (isActionLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddPostTopAppBar(
+    isEditMode: Boolean,
+    onBackClick: () -> Unit,
+    onResetClick: () -> Unit,
+    onSaveClick: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = if (isEditMode) "Edit Post" else "Add Post",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        navigationIcon = {
+            if (isEditMode) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clickable { onBackClick() }
+                )
+            }
+        },
+        actions = {
+            if (!isEditMode) {
+                TextButton(
+                    onClick = onResetClick,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color.Red
+                    )
+                ) {
+                    Text(
+                        text = "Reset",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            TextButton(
+                onClick = onSaveClick,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(
+                    text = if (isEditMode) "Update" else "Post",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -142,51 +220,15 @@ fun AddPostScreenContent(
     uiState: PostUiState,
     onDescriptionChange: (String) -> Unit,
     onPickImageClick: () -> Unit,
-    onResetPost: () -> Unit,
-    onSavePost: () -> Unit,
+    isEditMode: Boolean
 ){
-    val isEditMode = uiState.mode == PostMode.EDIT
-
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .padding( 20.dp),
-        horizontalArrangement = Arrangement.End
-    ) {
-
-        Text(
-            text = if (isEditMode) "Edit Post" else "Add Post",
-            fontSize = 25.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f)
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = "Reset",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.Red,
-            modifier = Modifier
-                .clickable { onResetPost() }
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = if (isEditMode) "Update" else "Post",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clickable {
-                if (isEditMode) onSavePost() else onSavePost()
-            }
-        )
-    }
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
-            .padding(45.dp)
-            .fillMaxSize(),
+            .padding(30.dp)
+            .verticalScroll(scrollState)
+            .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -265,23 +307,6 @@ fun AddPostScreenContent(
             label = { Text("Deskripsi") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-@Preview(showBackground = true)
-fun AddPostScreenContentPreview() {
-    MiniSosmedTheme {
-        AddPostScreenContent(
-            uiState = PostUiState(
-                description = "Ardhani Ahlan",
-                photoUrl = null
-            ),
-            onDescriptionChange = {},
-            onPickImageClick = {},
-            onSavePost = {},
-            onResetPost = {},
         )
     }
 }

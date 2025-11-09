@@ -1,5 +1,7 @@
 package org.apps.minisosmed.state
 
+import org.apps.minisosmed.entity.User
+
 data class AuthUiState(
     val displayName: String = "",
     val email: String = "",
@@ -11,4 +13,6 @@ data class AuthUiState(
     val emailError: String? = null,
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
+
+    val authState: ViewState<User> = ViewState.Idle
 )

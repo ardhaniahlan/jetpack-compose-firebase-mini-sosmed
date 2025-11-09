@@ -22,10 +22,7 @@ interface IChatRepository {
     fun getUserChats(userId: String): Flow<List<Chat>>
     fun getMessages(chatId: String): Flow<List<Message>>
     suspend fun sendMessage(chatId: String, text: String): Result<Unit>
-    suspend fun listenToChats(
-        currentUserId: String,
-        onChatsChanged: (List<ChatWithUser>) -> Unit
-    )
+    fun listenToChats(currentUserId: String): Flow<List<ChatWithUser>>
     suspend fun getOtherUserFromChat(chatId: String, currentUserId: String): Result<User>
 }
 
@@ -154,38 +151,46 @@ class ChatRepositoryImpl(
         awaitClose { listener.remove() }
     }
 
-    override suspend fun listenToChats(
-        currentUserId: String,
-        onChatsChanged: (List<ChatWithUser>) -> Unit
-    ) {
-        firestore.collection("chats")
+    override fun listenToChats(currentUserId: String): Flow<List<ChatWithUser>> = callbackFlow {
+        val listenerRegistration = firestore.collection("chats")
             .whereArrayContains("participants", currentUserId)
             .addSnapshotListener { snapshot, e ->
-                if (e != null) return@addSnapshotListener
+                if (e != null) {
+                    close(e)
+                    return@addSnapshotListener
+                }
 
-                CoroutineScope(Dispatchers.IO).launch {
-                    val chatList = snapshot?.documents?.mapNotNull { doc ->
-                        val chat = doc.toObject(Chat::class.java)?.copy(id = doc.id)
-                        chat?.let {
-                            val otherUserId = it.participants.firstOrNull { id -> id != currentUserId }
+                launch(Dispatchers.IO) {
+                    try {
+                        val chatList = snapshot?.documents?.mapNotNull { doc ->
+                            val chat = doc.toObject(Chat::class.java)?.copy(id = doc.id)
+                            chat?.let {
+                                val otherUserId = it.participants.firstOrNull { id -> id != currentUserId }
 
-                            if (otherUserId.isNullOrBlank()) {
-                                return@mapNotNull null
+                                if (otherUserId.isNullOrBlank()) {
+                                    return@mapNotNull null
+                                }
+
+                                val userDoc = firestore.collection("users")
+                                    .document(otherUserId)
+                                    .get()
+                                    .await()
+
+                                val otherUser = userDoc.toObject(User::class.java)
+                                if (otherUser != null) ChatWithUser(it, otherUser) else null
                             }
+                        } ?: emptyList()
 
-                            val userDoc = firestore.collection("users")
-                                .document(otherUserId)
-                                .get()
-                                .await()
-
-                            val otherUser = userDoc.toObject(User::class.java)
-                            if (otherUser != null) ChatWithUser(it, otherUser) else null
-                        }
-                    } ?: emptyList()
-
-                    onChatsChanged(chatList)
+                        trySend(chatList)
+                    } catch (exception: Exception) {
+                        trySend(emptyList())
+                    }
                 }
             }
+
+        awaitClose {
+            listenerRegistration.remove()
+        }
     }
 
 

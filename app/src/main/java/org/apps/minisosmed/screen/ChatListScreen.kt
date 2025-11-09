@@ -2,8 +2,9 @@ package org.apps.minisosmed.screen
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,10 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,89 +39,148 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.repository.ImageRepository
+import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.ChatViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
     navController: NavController,
     currentUserId: String,
 ) {
     val chatViewModel: ChatViewModel = hiltViewModel()
-    val chats by chatViewModel.chatsWithUser.collectAsState()
+    val uiState by chatViewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        chatViewModel.listenToChats(currentUserId)
+        chatViewModel.loadChats(currentUserId)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .padding( 20.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable {
-                        navController.navigate("home"){
-                            popUpTo("chatList") { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    }
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Text(
-                text = "Chat List",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .weight(1f)
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Chat List",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                navigationIcon = {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clickable {
+                                navController.navigate("home"){
+                                    popUpTo("chatlist"){
+                                        inclusive = true
+                                    }
+                                }
+                            }
+                    )
+                },
             )
         }
+    ) { paddingValues ->
 
-        LazyColumn {
-            items(chats) { chatItem ->
-                val chat = chatItem.chat
-                val user = chatItem.otherUser
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            when (val state = uiState.chatsState) {
+                is ViewState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate("chat/${chat.id}") }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    user.photoUrl?.let { base64 ->
-                        val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user.photoUrl) {
-                            value = withContext(Dispatchers.IO) {
-                                user.photoUrl.let { ImageRepository().base64ToBitmap(it) }
+                is ViewState.Success -> {
+                    val chats = state.data
+                    if (chats.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Belum ada chat")
+                        }
+                    } else {
+                        LazyColumn {
+                            items(chats) { chatItem ->
+                                val chat = chatItem.chat
+                                val user = chatItem.otherUser
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { navController.navigate("chat/${chat.id}") }
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    user.photoUrl?.let { base64 ->
+                                        val bitmap by produceState<Bitmap?>(
+                                            initialValue = null,
+                                            key1 = user.photoUrl
+                                        ) {
+                                            value = withContext(Dispatchers.IO) {
+                                                ImageRepository().base64ToBitmap(base64)
+                                            }
+                                        }
+
+                                        bitmap?.let {
+                                            Image(
+                                                bitmap = it.asImageBitmap(),
+                                                contentDescription = "Profile Picture",
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.width(12.dp))
+
+                                    Column {
+                                        user.displayName?.let {
+                                            Text(it, fontWeight = FontWeight.Bold)
+                                        }
+                                        chat.lastMessage?.let {
+                                            Text(it, color = Color.Gray, maxLines = 1)
+                                        }
+                                    }
+                                }
                             }
                         }
-
-                        bitmap?.let {
-                            Image(
-                                bitmap = it.asImageBitmap(),
-                                contentDescription = "Profile Picture",
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                            )
-                        }
                     }
+                }
 
-                    Spacer(Modifier.width(12.dp))
+                is ViewState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = state.message,
+                            color = Color.Red,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
 
-                    Column {
-                        user.displayName?.let { Text(it, fontWeight = FontWeight.Bold) }
-                        Text(chat.lastMessage, color = Color.Gray, maxLines = 1)
+                else -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
             }

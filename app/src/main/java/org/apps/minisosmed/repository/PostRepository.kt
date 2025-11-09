@@ -15,6 +15,7 @@ interface IPostRepository {
     suspend fun deletePost(postId: String): Result<Unit>
     suspend fun updatePost(postId: String, newDescription: String): Result<Unit>
     suspend fun getPostById(postId: String): Result<Post>
+    suspend fun getPostByUserId(userId: String): Flow<List<Post>>
 }
 
 class PostRepositoryImpl(
@@ -106,6 +107,24 @@ class PostRepositoryImpl(
         Result.success(post)
     } catch (e: Exception) {
         Result.failure(e)
+    }
+
+    override suspend fun getPostByUserId(userId: String): Flow<List<Post>> = callbackFlow {
+        val listener = firestore.collection("posts")
+            .whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null){
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val posts = snapshot?.documents?.mapNotNull { document ->
+                    document.toObject(Post::class.java)?.copy(id = document.id)
+                }.orEmpty().sortedByDescending { it.createdAt }
+
+                trySend(posts)
+            }
+        awaitClose { listener.remove() }
     }
 
 

@@ -1,6 +1,5 @@
 package org.apps.minisosmed.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,11 +21,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import org.apps.minisosmed.state.AuthUiState
+import org.apps.minisosmed.state.UiEvent
 import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.poppinsFontFamily
 import org.apps.minisosmed.viewmodel.AuthViewModel
@@ -54,8 +52,23 @@ fun LoginScreen(
     snackbarHostState: SnackbarHostState
 ){
     val authViewModel: AuthViewModel = hiltViewModel()
-    val uiState by authViewModel.uiState
-    val authState by authViewModel.authState.collectAsState()
+    val uiState by authViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.eventFlow.collect { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(message = event.message)
+                }
+                UiEvent.Navigate -> {
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -74,50 +87,14 @@ fun LoginScreen(
             }
         )
 
-        when (val state = authState) {
-            is ViewState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+        val isActionLoading = uiState.authState is ViewState.Loading
+
+        if (isActionLoading){
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-
-            is ViewState.Success -> {
-                LaunchedEffect(Unit) {
-                    snackbarHostState.showSnackbar(
-                        message = "Login Berhasil",
-                    )
-
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                }
-            }
-
-            is ViewState.Error -> {
-                LaunchedEffect(state.message) {
-                    snackbarHostState.showSnackbar(
-                        message = state.message,
-                    )
-                    authViewModel.resetAuthState()
-                }
-            }
-
-            else -> Unit
         }
     }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            authViewModel.clearForm()
-            authViewModel.resetAuthState()
-        }
-    }
-
 }
 
 @Composable
@@ -168,7 +145,6 @@ fun LoginScreenContent(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Email
             OutlinedTextField(
                 value = uiState.email,
                 onValueChange = onEmailChange,
@@ -218,7 +194,7 @@ fun LoginScreenContent(
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onLoginAccountClick
+                onClick = onLoginAccountClick,
             ) { Text(text = "Login") }
 
             Row {
@@ -244,24 +220,3 @@ fun LoginScreenContent(
         }
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun LoginScreenPreview() {
-//    MiniSosmedTheme {
-//        LoginScreenContent(
-//            uiState = AuthUiState(
-//                email = "ardhan@gmail.com",
-//                password = "password123",
-//                passwordVisible = false,
-//                emailError = null,
-//                passwordError = null,
-//            ),
-//            onEmailChange = {},
-//            onPasswordChange = {},
-//            onLoginAccountClick = {},
-//            onRegisterClick = {},
-//            onVisibilityChange = {},
-//        )
-//    }
-//}

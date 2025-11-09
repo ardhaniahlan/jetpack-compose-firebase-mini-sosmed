@@ -63,7 +63,7 @@ fun MyNavigation(
                 SearchScreen(navController)
             }
             composable("profile"){
-                ProfileScreen(navController, modifier)
+                ProfileScreen(navController, modifier, snackbarHostState = snackbarHostState)
             }
 
             composable(
@@ -95,7 +95,8 @@ fun MyNavigation(
                 ProfileScreen(
                     navController = navController,
                     modifier = modifier,
-                    userId = userId
+                    userId = userId,
+                    snackbarHostState = snackbarHostState
                 )
             }
 

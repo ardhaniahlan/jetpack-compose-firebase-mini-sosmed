@@ -1,7 +1,5 @@
 package org.apps.minisosmed.screen
 
-import android.R.id.message
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,11 +21,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import org.apps.minisosmed.state.AuthUiState
+import org.apps.minisosmed.state.UiEvent
 import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.ui.theme.poppinsFontFamily
 import org.apps.minisosmed.viewmodel.AuthViewModel
@@ -55,8 +52,23 @@ fun RegisterScreen(
     snackbarHostState: SnackbarHostState
 ) {
     val authViewModel: AuthViewModel = hiltViewModel()
-    val uiState by authViewModel.uiState
-    val authState by authViewModel.authState.collectAsState()
+    val uiState by authViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.eventFlow.collect { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(message = event.message)
+                }
+                UiEvent.Navigate -> {
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -78,47 +90,12 @@ fun RegisterScreen(
             }
         )
 
-        when (val state = authState){
-            is ViewState.Loading -> {
-                Box(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            is ViewState.Success -> {
-                LaunchedEffect(Unit) {
-                    snackbarHostState.showSnackbar(
-                        message = "Registrasi berhasil",
-                        actionLabel = "OK"
-                    )
-                    navController.navigate("login") {
-                        popUpTo("register") { inclusive = true }
-                    }
-                    authViewModel.resetAuthState()
-                }
-            }
+        val isActionLoading = uiState.authState is ViewState.Loading
 
-            is ViewState.Error -> {
-                LaunchedEffect(state.message) {
-                    snackbarHostState.showSnackbar(
-                        message = state.message,
-                    )
-                    authViewModel.resetAuthState()
-                }
+        if (isActionLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-
-            else -> Unit
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            authViewModel.clearForm()
-            authViewModel.resetAuthState()
         }
     }
 }

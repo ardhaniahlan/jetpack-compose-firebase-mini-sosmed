@@ -1,5 +1,6 @@
 package org.apps.minisosmed.viewmodel
 
+import android.util.Log.e
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,9 +11,14 @@ import org.apps.minisosmed.repository.IUserRepository
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateMapOf
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import org.apps.minisosmed.state.CommentUiState
 import org.apps.minisosmed.state.ViewState
 import javax.inject.Inject
@@ -23,36 +29,43 @@ class CommentViewModel @Inject constructor(
     private val userRepository: IUserRepository
 ) : ViewModel() {
 
-    private val _commentsPerPost = mutableStateMapOf<String, List<CommentWithUser>>()
-    val commentsPerPost: Map<String, List<CommentWithUser>> get() = _commentsPerPost
-
-    private val _commentState = MutableStateFlow<ViewState<Unit>>(ViewState.Idle)
-    val commentState = _commentState.asStateFlow()
-
-    private val _uiState = mutableStateOf(CommentUiState())
-    val uiState: State<CommentUiState> = _uiState
+    private val _uiState = MutableStateFlow(CommentUiState())
+    val uiState= _uiState.asStateFlow()
 
     fun loadComments(postId: String) {
         viewModelScope.launch {
-            _commentState.value = ViewState.Loading
+            _uiState.update { it.copy(commentState = ViewState.Loading) }
+
             try {
                 commentRepository.getCommentsByPost(postId).collect { comments ->
-                    val usersResult = userRepository.getAllUsers()
+                    val userIds = comments.map { it.userId }.distinct()
 
-                    val users = usersResult.getOrDefault(emptyList())
-                    val userMap = users.associateBy { it.id }
+                    val userMap = withContext(Dispatchers.IO) {
+                        userIds.map { userId ->
+                            async {
+                                userId to userRepository.getUserById(userId).getOrNull()
+                            }
+                        }.awaitAll()
+                            .filter { it.second != null }
+                            .associate { it.first to it.second!! }
+                    }
 
-                    val enriched = comments.mapNotNull { comment ->
+                    val enrichedComments = comments.mapNotNull { comment ->
                         val user = userMap[comment.userId]
                         user?.let { CommentWithUser(comment, it) }
                     }
 
-                    _commentsPerPost[postId] = enriched
-                    _uiState.value = _uiState.value.copy(comments = enriched)
-                    _commentState.value = ViewState.Success(Unit)
+                    _uiState.update {
+                        it.copy(
+                            comments = enrichedComments,
+                            commentState = ViewState.Success(Unit)
+                        )
+                    }
                 }
             } catch (e: Exception) {
-                _commentState.value = ViewState.Error("Gagal memuat comment: ${e.message}")
+                _uiState.update {
+                    it.copy(commentState = ViewState.Error("Gagal memuat komentar: ${e.message}"))
+                }
             }
         }
     }

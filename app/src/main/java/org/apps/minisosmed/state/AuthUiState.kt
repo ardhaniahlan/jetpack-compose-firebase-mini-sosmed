@@ -14,5 +14,6 @@ data class AuthUiState(
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
 
-    val authState: ViewState<User> = ViewState.Idle
+    val authState: ViewState<User> = ViewState.Idle,
+    val isUiBlocked: Boolean = false
 )

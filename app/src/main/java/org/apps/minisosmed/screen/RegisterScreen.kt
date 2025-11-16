@@ -1,6 +1,7 @@
 package org.apps.minisosmed.screen
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,16 +60,20 @@ fun RegisterScreen(
             when (event) {
                 is UiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(message = event.message)
+                    authViewModel.unblockUi()
                 }
                 UiEvent.Navigate -> {
                     navController.navigate("login") {
                         popUpTo("register") { inclusive = true }
                         launchSingleTop = true
                     }
+                    authViewModel.unblockUi()
                 }
             }
         }
     }
+
+    val isActionLoading = uiState.authState is ViewState.Loading || uiState.isUiBlocked
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -81,16 +86,17 @@ fun RegisterScreen(
             onPasswordChange = authViewModel::onPasswordChange,
             onConfirmPasswordChange = authViewModel::onConfirmPasswordChange,
             onVisibilityChange = authViewModel::togglePasswordVisibility,
-            onCreateAccountClick = { authViewModel.register() },
+            onCreateAccountClick = {
+                if (!isActionLoading) authViewModel.register()
+            },
             onLoginClick = {
                 authViewModel.clearForm()
                 navController.navigate("login") {
                     popUpTo("register") { inclusive = true }
                 }
-            }
+            },
+            enabled = !isActionLoading
         )
-
-        val isActionLoading = uiState.authState is ViewState.Loading
 
         if (isActionLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -109,7 +115,8 @@ fun RegisterScreenContent(
     onConfirmPasswordChange: (String) -> Unit,
     onVisibilityChange: () -> Unit,
     onCreateAccountClick: () -> Unit,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    enabled: Boolean = true
 ){
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -152,7 +159,8 @@ fun RegisterScreenContent(
                     imeAction = ImeAction.Done
                 ),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                enabled = enabled
             )
             uiState.displayNameError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp)
@@ -172,6 +180,7 @@ fun RegisterScreenContent(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                enabled = enabled
             )
             uiState.emailError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp)
@@ -190,7 +199,10 @@ fun RegisterScreenContent(
                     val image = if (uiState.passwordVisible) Icons.Default.Visibility
                     else Icons.Default.VisibilityOff
 
-                    IconButton(onClick = onVisibilityChange) {
+                    IconButton(
+                        onClick = onVisibilityChange,
+                        enabled = enabled
+                    ) {
                         Icon(image, contentDescription = null)
                     }
                 },
@@ -201,6 +213,7 @@ fun RegisterScreenContent(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                enabled = enabled
             )
             uiState.passwordError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp)
@@ -221,7 +234,10 @@ fun RegisterScreenContent(
                     val image = if (uiState.passwordVisible) Icons.Default.Visibility
                     else Icons.Default.VisibilityOff
 
-                    IconButton(onClick = onVisibilityChange) {
+                    IconButton(
+                        onClick = onVisibilityChange,
+                        enabled = enabled
+                    ) {
                         Icon(image, contentDescription = null)
                     }
                 },
@@ -232,6 +248,7 @@ fun RegisterScreenContent(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                enabled = enabled
             )
             uiState.confirmPasswordError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp)
@@ -241,7 +258,8 @@ fun RegisterScreenContent(
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onCreateAccountClick
+                onClick = onCreateAccountClick,
+                enabled = enabled
             ) { Text(text = "Registrasi") }
 
             Row {
@@ -259,9 +277,10 @@ fun RegisterScreenContent(
                     fontSize = 12.sp,
                     fontFamily = poppinsFontFamily,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable{
-                        onLoginClick()
-                    }
+                    modifier = Modifier.combinedClickable(
+                        enabled = enabled,
+                        onClick = onLoginClick
+                    )
                 )
             }
         }

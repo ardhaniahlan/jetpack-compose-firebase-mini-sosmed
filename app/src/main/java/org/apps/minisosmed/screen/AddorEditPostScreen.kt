@@ -9,15 +9,21 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,6 +33,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -38,7 +45,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -77,34 +87,33 @@ fun AddPostScreen(
         }
     )
 
+    val isFormValid = remember(uiState.photoUrl, uiState.description) {
+        val hasValidPhoto = uiState.photoUrl != null
+        val hasValidDescription = uiState.description?.trim()?.isNotEmpty() == true
+
+        hasValidPhoto || hasValidDescription
+    }
+
     LaunchedEffect(Unit) {
         postViewModel.eventFlow.collect { event ->
             when (event) {
                 is UiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(message = event.message)
+                    postViewModel.unblockUi()
                 }
                 UiEvent.Navigate -> {
                     navController.navigate("home") {
                         popUpTo("addpost") { inclusive = true }
                         launchSingleTop = true
                     }
+                    postViewModel.unblockUi()
                 }
             }
         }
     }
 
-    LaunchedEffect(uiState.createPostState) {
-        when (val state = uiState.createPostState) {
-            is ViewState.Error -> {
-                snackbarHostState.showSnackbar(message = state.message)
-                postViewModel.resetPostState()
-            }
-            else -> {}
-        }
-    }
-
-    LaunchedEffect(uiState.updatePostState) {
-        when (val state = uiState.updatePostState) {
+    LaunchedEffect(uiState.postOperation) {
+        when (val state = uiState.postOperation) {
             is ViewState.Error -> {
                 snackbarHostState.showSnackbar(message = state.message)
                 postViewModel.resetPostState()
@@ -114,6 +123,13 @@ fun AddPostScreen(
     }
 
     val isEditMode = uiState.mode == PostMode.EDIT
+    val isActionLoading = uiState.postOperation is ViewState.Loading || uiState.isUiBlocked
+
+    val canSave = if (isEditMode) {
+        uiState.description?.trim()?.isNotEmpty() == true && !isActionLoading
+    } else {
+        isFormValid && !isActionLoading
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -121,29 +137,43 @@ fun AddPostScreen(
             AddPostTopAppBar(
                 isEditMode = isEditMode,
                 onBackClick = {
-                    navController.popBackStack()
+                    if (!isActionLoading) navController.popBackStack()
                 },
-                onResetClick = { postViewModel.clearForm() },
+                onResetClick = {
+                    if (!isActionLoading) postViewModel.clearForm()
+                },
                 onSaveClick = {
-                    if (isEditMode) {
-                        postViewModel.updatePost()
-                    } else {
-                        postViewModel.createPost(context)
+                    if (!isActionLoading) {
+                        if (isEditMode) {
+                            postViewModel.updatePost()
+                        } else {
+                            postViewModel.createPost(context)
+                        }
                     }
-                }
+                },
+                enabled =
+                    if (isEditMode) {
+                    uiState.description?.trim()?.isNotEmpty() == true && !isActionLoading
+                } else {
+                    isFormValid && !isActionLoading
+                },
             )
         }
     ) { paddingValues ->
-        Column(modifier = modifier.fillMaxSize().padding(paddingValues)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             AddPostScreenContent(
                 uiState = uiState,
                 onDescriptionChange = postViewModel::onDescriptionChange,
-                onPickImageClick = { imagePickerLauncher.launch("image/*") },
+                onPickImageClick = {
+                    if (!isActionLoading) imagePickerLauncher.launch("image/*")
+                },
                 isEditMode = isEditMode,
+                enabled = !isActionLoading
             )
-
-            val isActionLoading = uiState.createPostState is ViewState.Loading ||
-                    uiState.updatePostState is ViewState.Loading
 
             if (isActionLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -160,7 +190,8 @@ fun AddPostTopAppBar(
     isEditMode: Boolean,
     onBackClick: () -> Unit,
     onResetClick: () -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     TopAppBar(
         title = {
@@ -172,13 +203,15 @@ fun AddPostTopAppBar(
         },
         navigationIcon = {
             if (isEditMode) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable { onBackClick() }
-                )
+                IconButton(
+                    onClick = onBackClick,
+                    enabled = enabled
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
             }
         },
         actions = {
@@ -187,7 +220,8 @@ fun AddPostTopAppBar(
                     onClick = onResetClick,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = Color.Red
-                    )
+                    ),
+                    enabled = enabled
                 ) {
                     Text(
                         text = "Reset",
@@ -204,7 +238,8 @@ fun AddPostTopAppBar(
                 onClick = onSaveClick,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.primary
-                )
+                ),
+                enabled = enabled
             ) {
                 Text(
                     text = if (isEditMode) "Update" else "Post",
@@ -220,7 +255,8 @@ fun AddPostScreenContent(
     uiState: PostUiState,
     onDescriptionChange: (String) -> Unit,
     onPickImageClick: () -> Unit,
-    isEditMode: Boolean
+    isEditMode: Boolean,
+    enabled: Boolean = true
 ){
     val scrollState = rememberScrollState()
 
@@ -238,11 +274,11 @@ fun AddPostScreenContent(
                 .size(200.dp)
                 .background(Color.Gray)
                 .then(
-                    if (!isEditMode) Modifier.clickable { onPickImageClick() }
-                    else Modifier
+                    if (!isEditMode) Modifier.clickable(enabled = enabled, onClick = onPickImageClick) else Modifier
                 ),
             contentAlignment = Alignment.Center
         ) {
+
             when {
                 isEditMode && uiState.photoUrl != null -> {
                     val bitmap by produceState<Bitmap?>(initialValue = null, key1 = uiState.photoUrl) {
@@ -306,7 +342,9 @@ fun AddPostScreenContent(
             onValueChange = onDescriptionChange,
             label = { Text("Deskripsi") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled
+
         )
     }
 }

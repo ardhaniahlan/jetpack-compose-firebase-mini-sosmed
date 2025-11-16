@@ -1,5 +1,6 @@
 package org.apps.minisosmed.screen
 
+import android.R.attr.navigationIcon
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -70,20 +72,15 @@ fun ChatListScreen(
                     )
                 },
                 navigationIcon = {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clickable {
-                                navController.navigate("home"){
-                                    popUpTo("chatlist"){
-                                        inclusive = true
-                                    }
-                                }
-                            }
-                    )
-                },
+                    IconButton(onClick = {
+                        navController.navigate("home") {
+                            popUpTo("chatlist") { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
         }
     ) { paddingValues ->

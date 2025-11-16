@@ -14,5 +14,7 @@ data class UpdateUserUiState(
     val userState: ViewState<User> = ViewState.Idle,
     val updateState: ViewState<Unit> = ViewState.Idle,
     val searchUser: ViewState<List<User>> = ViewState.Idle,
-    val postsState: ViewState<List<Post>> = ViewState.Idle
+    val postsState: ViewState<List<Post>> = ViewState.Idle,
+
+    val isUiBlocked: Boolean = false
 )

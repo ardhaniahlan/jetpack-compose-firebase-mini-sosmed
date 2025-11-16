@@ -63,8 +63,8 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(uiState.deletePostState) {
-        when (val state = uiState.deletePostState) {
+    LaunchedEffect(uiState.postOperation) {
+        when (val state = uiState.postOperation) {
             is ViewState.Error -> {
                 snackbarHostState.showSnackbar(message = state.message)
                 postViewModel.resetPostState()

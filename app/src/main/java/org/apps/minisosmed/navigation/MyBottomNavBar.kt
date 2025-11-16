@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
@@ -41,7 +42,7 @@ fun MyBottomNavBar(navController: NavController){
     )
 
     NavigationBar(
-        modifier = Modifier.height(barHeight)
+        modifier = Modifier.height(barHeight).navigationBarsPadding()
     ) {
         Row(
             modifier = Modifier.fillMaxWidth()

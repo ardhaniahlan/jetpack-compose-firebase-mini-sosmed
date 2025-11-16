@@ -1,6 +1,7 @@
 package org.apps.minisosmed.screen
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,16 +60,20 @@ fun LoginScreen(
             when (event) {
                 is UiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(message = event.message)
+                    authViewModel.unblockUi()
                 }
                 UiEvent.Navigate -> {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                         launchSingleTop = true
                     }
+                    authViewModel.unblockUi()
                 }
             }
         }
     }
+
+    val isActionLoading = uiState.authState is ViewState.Loading || uiState.isUiBlocked
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -78,16 +83,17 @@ fun LoginScreen(
             onEmailChange = authViewModel::onEmailChange,
             onPasswordChange = authViewModel::onPasswordChange,
             onVisibilityChange = authViewModel::togglePasswordVisibility,
-            onLoginAccountClick = { authViewModel.login() },
+            onLoginAccountClick = {
+                if (!isActionLoading) authViewModel.login()
+            },
             onRegisterClick = {
                 authViewModel.clearForm()
                 navController.navigate("register") {
                     popUpTo("login") { inclusive = true }
                 }
-            }
+            },
+            enabled = !isActionLoading
         )
-
-        val isActionLoading = uiState.authState is ViewState.Loading
 
         if (isActionLoading){
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -104,8 +110,10 @@ fun LoginScreenContent(
     onPasswordChange: (String) -> Unit,
     onVisibilityChange : () -> Unit,
     onLoginAccountClick: () -> Unit,
-    onRegisterClick: () -> Unit
+    onRegisterClick: () -> Unit,
+    enabled: Boolean = true
 ) {
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -156,6 +164,7 @@ fun LoginScreenContent(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                enabled = enabled
             )
             uiState.emailError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp)
@@ -174,7 +183,10 @@ fun LoginScreenContent(
                     val image = if (uiState.passwordVisible) Icons.Default.Visibility
                     else Icons.Default.VisibilityOff
 
-                    IconButton(onClick = onVisibilityChange) {
+                    IconButton(
+                        onClick = onVisibilityChange,
+                        enabled = enabled
+                    ) {
                         Icon(image, contentDescription = null)
                     }
                 },
@@ -185,6 +197,8 @@ fun LoginScreenContent(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                enabled = enabled
+
             )
             uiState.passwordError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp)
@@ -195,6 +209,7 @@ fun LoginScreenContent(
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onLoginAccountClick,
+                enabled = enabled
             ) { Text(text = "Login") }
 
             Row {
@@ -212,9 +227,10 @@ fun LoginScreenContent(
                     fontSize = 12.sp,
                     fontFamily = poppinsFontFamily,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable{
-                        onRegisterClick()
-                    }
+                    modifier = Modifier.combinedClickable(
+                        enabled = enabled,
+                        onClick = onRegisterClick
+                    )
                 )
             }
         }

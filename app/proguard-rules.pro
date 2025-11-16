@@ -1,21 +1,50 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# =========================================
+# 🔒 ProGuard Rules for Mini Sosmed Project
+# =========================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ---------- Firebase ----------
+# Keep all Firebase classes (Auth, Firestore, Storage)
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ---------- Hilt / Dagger ----------
+# Keep Hilt/Dagger generated code
+-keep class dagger.hilt.** { *; }
+-keep class *Hilt_* { *; }
+-keep class *Injector { *; }
+-dontwarn dagger.hilt.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ---------- Jetpack Compose ----------
+# Keep all Compose-related classes and avoid warnings
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
+-dontwarn androidx.activity.compose.**
+-dontwarn androidx.lifecycle.compose.**
+
+# ---------- ViewModel & Data Models ----------
+# Keep all ViewModels and data classes (important for reflection)
+-keepclassmembers class * extends androidx.lifecycle.ViewModel {
+    <init>(...);
+}
+-keepclassmembers class **.datamodel.** { *; }
+-keepclassmembers class **.model.** { *; }
+-dontwarn androidx.lifecycle.**
+
+# ---------- Kotlin Coroutines ----------
+-dontwarn kotlinx.coroutines.**
+
+# ---------- Prevent Removal of Kotlin Metadata ----------
+-keep class kotlin.Metadata { *; }
+
+# ---------- Keep App Classes and Entry Points ----------
+-keep class org.apps.minisosmed.** { *; }
+
+# ---------- Preserve attributes needed for reflection ----------
+-keepattributes InnerClasses,EnclosingMethod,Signature
+
+# ---------- Optional: Keep line numbers for crash logs ----------
+-keepattributes SourceFile,LineNumberTable
+
+# =========================================
+# End of Rules
+# =========================================

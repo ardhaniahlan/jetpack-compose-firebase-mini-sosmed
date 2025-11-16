@@ -4,26 +4,21 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apps.minisosmed.entity.Post
 import org.apps.minisosmed.entity.PostMode
 import org.apps.minisosmed.entity.relation.PostWithUser
-import org.apps.minisosmed.entity.User
 import org.apps.minisosmed.repository.IPostRepository
 import org.apps.minisosmed.repository.IUserRepository
 import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.PostUiState
 import androidx.core.net.toUri
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -122,7 +117,7 @@ class PostViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 mode = PostMode.EDIT,
-                postBeingEditedId = post.id,
+                postImage = post.id,
                 description = post.description ?: "",
                 photoUrl = photoUriForUi
             )
@@ -131,10 +126,13 @@ class PostViewModel @Inject constructor(
 
     fun updatePost() {
         val current = _uiState.value
-        val postId = current.postBeingEditedId ?: return
+        val postId = current.postImage ?: return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(updatePostState = ViewState.Loading) }
+            _uiState.update { it.copy(
+                postOperation = ViewState.Loading,
+                isUiBlocked = true
+            ) }
 
             try {
                 val result = postRepository.updatePost(
@@ -153,30 +151,35 @@ class PostViewModel @Inject constructor(
                         it.copy(
                             postsState = ViewState.Success(updatedPosts),
                             mode = PostMode.EDIT,
-                            postBeingEditedId = null,
-                            updatePostState = ViewState.Success(Unit)
+                            postImage = null,
+                            postOperation = ViewState.Success(Unit)
                         )
                     }
                     _eventFlow.emit(UiEvent.ShowSnackbar("Post berhasil diupdate"))
                     _eventFlow.emit(UiEvent.Navigate)
                 }.onFailure {
                     _uiState.update {
-                        it.copy(updatePostState = ViewState.Error("Gagal memperbarui post: $it"))
+                        it.copy(
+                            postOperation = ViewState.Error("Gagal memperbarui post: $it"),
+                            isUiBlocked = false
+                        )
                     }
                 }
 
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(updatePostState = ViewState.Error("Terjadi kesalahan: ${e.message}"))
+                    it.copy(
+                        postOperation = ViewState.Error("Terjadi kesalahan: ${e.message}"),
+                        isUiBlocked = false
+                    )
                 }
             }
         }
     }
 
-
     fun deletePost(postId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(deletePostState = ViewState.Loading) }
+            _uiState.update { it.copy(postOperation = ViewState.Loading) }
 
             postRepository.deletePost(postId)
                 .onSuccess {
@@ -189,14 +192,14 @@ class PostViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             postsState = ViewState.Success(updatedPosts),
-                            deletePostState = ViewState.Success(Unit)
+                            postOperation = ViewState.Success(Unit)
                         )
                     }
                     _eventFlow.emit(UiEvent.ShowSnackbar("Post berhasil dihapus"))
                 }
                 .onFailure {
                     _uiState.update {
-                        it.copy(deletePostState = ViewState.Error("Gagal menghapus post: $it"))
+                        it.copy(postOperation = ViewState.Error("Gagal menghapus post: $it"))
                     }
                 }
         }
@@ -205,7 +208,7 @@ class PostViewModel @Inject constructor(
     @RequiresApi(Build.VERSION_CODES.O)
     fun createPost(context: Context) {
         viewModelScope.launch {
-            _uiState.update { it.copy(createPostState = ViewState.Loading) }
+            _uiState.update { it.copy(postOperation = ViewState.Loading, isUiBlocked = true) }
 
             try {
                 val photoBase64 = withContext(Dispatchers.IO) {
@@ -218,7 +221,6 @@ class PostViewModel @Inject constructor(
                     description = uiState.value.description,
                     photoUri = photoBase64
                 ).onSuccess { newPost ->
-                    // Update posts list
                     val currentPosts = when (val state = uiState.value.postsState) {
                         is ViewState.Success -> state.data
                         else -> emptyList()
@@ -234,9 +236,9 @@ class PostViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 postsState = ViewState.Success(updatedPosts),
-                                description = "",
-                                photoUrl = null,
-                                createPostState = ViewState.Success(Unit)
+                                mode = PostMode.ADD,
+                                postImage = null,
+                                postOperation = ViewState.Success(Unit)
                             )
                         }
                     }
@@ -245,12 +247,12 @@ class PostViewModel @Inject constructor(
                     _eventFlow.emit(UiEvent.Navigate)
                 }.onFailure {
                     _uiState.update {
-                        it.copy(createPostState = ViewState.Error("Gagal membuat post: $it"))
+                        it.copy(postOperation = ViewState.Error("Gagal membuat post: $it"), isUiBlocked = false)
                     }
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(createPostState = ViewState.Error("Terjadi kesalahan: ${e.message}"))
+                    it.copy(postOperation = ViewState.Error("Terjadi kesalahan: ${e.message}"), isUiBlocked = false)
                 }
             }
         }
@@ -266,11 +268,7 @@ class PostViewModel @Inject constructor(
 
     fun resetPostState() {
         _uiState.update {
-            it.copy(
-                createPostState = ViewState.Idle,
-                updatePostState = ViewState.Idle,
-                deletePostState = ViewState.Idle
-            )
+            it.copy(postOperation = ViewState.Idle)
         }
     }
 
@@ -280,8 +278,12 @@ class PostViewModel @Inject constructor(
                 description = "",
                 photoUrl = null,
                 mode = PostMode.ADD,
-                postBeingEditedId = null
+                postImage = null
             )
         }
+    }
+
+    fun unblockUi() {
+        _uiState.update { it.copy(isUiBlocked = false) }
     }
 }

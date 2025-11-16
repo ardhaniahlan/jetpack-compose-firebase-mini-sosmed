@@ -3,15 +3,12 @@ package org.apps.minisosmed.screen
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,17 +20,16 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,7 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -63,6 +58,7 @@ import org.apps.minisosmed.repository.ImageRepository
 import org.apps.minisosmed.state.ViewState
 import org.apps.minisosmed.viewmodel.ChatViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     chatId: String,
@@ -100,96 +96,91 @@ fun ChatScreen(
         else -> null
     }
 
-    // Extract messages data dari messagesState
     val messages = when (val state = uiState.messagesState) {
         is ViewState.Success -> state.data
         else -> emptyList()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .padding( 20.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable {
-                        navController.navigate("chatList"){
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user?.photoUrl) {
+                            value = withContext(Dispatchers.IO) {
+                                user?.photoUrl?.let { ImageRepository().base64ToBitmap(it) }
+                            }
+                        }
+
+                        bitmap?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Gray),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Text(
+                            text = user?.displayName ?: "Loading...",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        navController.navigate("chatList") {
                             popUpTo("chat") { inclusive = true }
                             launchSingleTop = true
                         }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
+                }
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            val bitmap by produceState<Bitmap?>(initialValue = null, key1 = user?.photoUrl) {
-                value = withContext(Dispatchers.IO) {
-                    user?.photoUrl?.let { ImageRepository().base64ToBitmap(it) }
-                }
-            }
-
-            bitmap?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            user?.displayName?.let {
-                Text(
-                    text = it,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
-            }
         }
-
-        LazyColumn(
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .imePadding(),
-            state = listState,
-            reverseLayout = false
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
         ) {
-            items(messages) { message ->
-                val isMine = message.senderId == currentUserId
-                ChatBubble(
-                    text = message.text,
-                    isMine = isMine,
-                    timestamp = message.createdAt
-                )
-            }
-        }
-
-        ChatInputBar(
-            text = text,
-            onTextChange = { text = it },
-            onSendClick = {
-                if (text.isNotBlank()) {
-                    chatViewModel.sendMessage(chatId, text.trim())
-                    text = ""
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                state = listState,
+                reverseLayout = false
+            ) {
+                items(messages) { message ->
+                    val isMine = message.senderId == currentUserId
+                    ChatBubble(
+                        text = message.text,
+                        isMine = isMine,
+                        timestamp = message.createdAt
+                    )
                 }
             }
-        )
+
+            ChatInputBar(
+                text = text,
+                onTextChange = { text = it },
+                onSendClick = {
+                    if (text.isNotBlank()) {
+                        chatViewModel.sendMessage(chatId, text.trim())
+                        text = ""
+                    }
+                }
+            )
+        }
     }
 }
 

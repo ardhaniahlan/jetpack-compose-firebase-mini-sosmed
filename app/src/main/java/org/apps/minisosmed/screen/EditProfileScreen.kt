@@ -9,6 +9,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -86,12 +88,14 @@ fun EditProfileScreen(
             when (event) {
                 is UiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(message = event.message)
+                    userViewModel.unblockUi()
                 }
                 UiEvent.Navigate -> {
                     navController.navigate("profile") {
                         popUpTo("editprofile") { inclusive = true }
                         launchSingleTop = true
                     }
+                    userViewModel.unblockUi()
                 }
             }
         }
@@ -107,14 +111,19 @@ fun EditProfileScreen(
         }
     }
 
+    val isActionLoading = uiState.updateState is ViewState.Loading || uiState.isUiBlocked
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             EditProfileTopBar(
-                onBackScreen = {
-                    navController.popBackStack()
+                onBackClick = {
+                    if (!isActionLoading) navController.popBackStack()
                 },
-                onSaveEdit = { userViewModel.updateProfile(context) }
+                onSaveEdit = {
+                    if (!isActionLoading) userViewModel.updateProfile(context)
+                },
+                enabled = !isActionLoading
             )
         }
     ) { paddingValues ->
@@ -124,9 +133,11 @@ fun EditProfileScreen(
                 uiState = uiState,
                 onDisplayNameChange = userViewModel::onDisplayNameChange,
                 onBioChange = userViewModel::onBioChange,
-                onPickImageClick = { imagePickerLauncher.launch("image/*") },
+                onPickImageClick = {
+                    if (!isActionLoading) imagePickerLauncher.launch("image/*")
+                },
+                enabled = !isActionLoading
             )
-            val isActionLoading = uiState.updateState is ViewState.Loading
 
             if (isActionLoading) {
                 Box(
@@ -145,8 +156,9 @@ fun EditProfileScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileTopBar(
-    onBackScreen: () -> Unit,
+    onBackClick: () -> Unit,
     onSaveEdit: () -> Unit,
+    enabled: Boolean = true
 ) {
     TopAppBar(
         title = {
@@ -157,13 +169,15 @@ fun EditProfileTopBar(
             )
         },
         navigationIcon = {
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable { onBackScreen() }
-            )
+            IconButton(
+                onClick = onBackClick,
+                enabled = enabled
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
         },
         actions = {
             val isLoading = false
@@ -185,11 +199,16 @@ fun EditProfileScreenContent(
     onBioChange: (String) -> Unit,
     onDisplayNameChange: (String) -> Unit,
     onPickImageClick: () -> Unit,
+    enabled: Boolean = true
 ){
     Column(
         modifier = Modifier
             .padding(45.dp)
-            .fillMaxSize(),
+            .fillMaxSize()
+            .clickable(
+                enabled = enabled,
+                onClick = onPickImageClick
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -198,18 +217,16 @@ fun EditProfileScreenContent(
                 .padding(top=50.dp)
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(Color.Gray)
-                .clickable { onPickImageClick() },
+                .background(Color.Gray),
             contentAlignment = Alignment.Center
         ) {
-
             when {
                 uiState.selectedImageUri != null -> {
                     AsyncImage(
                         model = uiState.selectedImageUri,
                         contentDescription = "Picked Picture",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
 
@@ -225,7 +242,7 @@ fun EditProfileScreenContent(
                             bitmap = it.asImageBitmap(),
                             contentDescription = "Profile Picture",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 } else -> {
@@ -246,7 +263,8 @@ fun EditProfileScreenContent(
             onValueChange = onDisplayNameChange,
             label = { Text("Display Name") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = enabled
         )
         uiState.displayNameError?.let {
             Text(it, color = Color.Red, fontSize = 12.sp)
@@ -259,7 +277,8 @@ fun EditProfileScreenContent(
             onValueChange = onBioChange,
             label = { Text("Bio") },
             modifier = Modifier.fillMaxWidth(),
-            maxLines = 3
+            maxLines = 3,
+            enabled = enabled
         )
     }
 }

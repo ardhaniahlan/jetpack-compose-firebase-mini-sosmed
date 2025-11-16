@@ -147,7 +147,10 @@ class UserViewModel @Inject constructor(
         if (!hasChanges) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(updateState = ViewState.Loading) }
+            _uiState.update { it.copy(
+                userState = ViewState.Loading,
+                isUiBlocked = true
+            ) }
 
             try {
                 val photoBase64 = withContext(Dispatchers.IO) {
@@ -175,7 +178,10 @@ class UserViewModel @Inject constructor(
                     _eventFlow.emit(UiEvent.Navigate)
                 }.onFailure { e ->
                     _uiState.update {
-                        it.copy(updateState = ViewState.Error("Gagal update profil: ${e.message}"))
+                        it.copy(
+                            updateState = ViewState.Error("Gagal update profil: ${e.message}"),
+                            isUiBlocked = false
+                        )
                     }
                 }
 
@@ -207,5 +213,9 @@ class UserViewModel @Inject constructor(
             photoUrl = uri,
             selectedImageUri = uri
         ) }
+    }
+
+    fun unblockUi() {
+        _uiState.update { it.copy(isUiBlocked = false) }
     }
 }

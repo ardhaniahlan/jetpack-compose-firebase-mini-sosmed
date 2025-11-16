@@ -1,5 +1,6 @@
 package org.apps.minisosmed.viewmodel
 
+import android.R.attr.password
 import android.util.Log
 import android.util.Log.e
 import androidx.compose.runtime.State
@@ -40,32 +41,43 @@ class AuthViewModel @Inject constructor(private val authRepository: IAuthReposit
     }
 
     fun login(){
-        val current = _uiState.value
         viewModelScope.launch {
-            _uiState.update { it.copy(authState = ViewState.Loading) }
+            _uiState.update { it.copy(
+                authState = ViewState.Loading,
+                isUiBlocked = true
+            ) }
 
-            val result = authRepository.login(current.email, current.password)
+            val result = authRepository.login(_uiState.value.email, _uiState.value.password)
             result.onSuccess { user ->
                 _uiState.update { it.copy(authState = ViewState.Success(user)) }
                 _eventFlow.emit(UiEvent.ShowSnackbar("Login berhasil"))
                 _eventFlow.emit(UiEvent.Navigate)
             }.onFailure { e ->
-                _uiState.update { it.copy(authState = ViewState.Error(e.message ?: "Login gagal")) }
+                _uiState.update { it.copy(
+                    authState = ViewState.Error(e.message ?: "Login gagal"),
+                    isUiBlocked = false
+                ) }
             }
         }
     }
 
     fun register (){
-        val current = _uiState.value
         viewModelScope.launch {
-            _uiState.update { it.copy(authState = ViewState.Loading) }
-            val result = authRepository.register(current.email, current.password, current.displayName)
+            _uiState.update { it.copy(
+                authState = ViewState.Loading,
+                isUiBlocked = true
+            ) }
+
+            val result = authRepository.register(_uiState.value.email, _uiState.value.password, _uiState.value.displayName)
             result.onSuccess { user ->
                 _uiState.update { it.copy(authState = ViewState.Success(user)) }
                 _eventFlow.emit(UiEvent.ShowSnackbar("Register berhasil"))
                 _eventFlow.emit(UiEvent.Navigate)
             }.onFailure { e ->
-                _uiState.update { it.copy(authState = ViewState.Error(e.message ?: "Register gagal")) }
+                _uiState.update { it.copy(
+                    authState = ViewState.Error(e.message ?: "Register gagal"),
+                    isUiBlocked = false
+                ) }
             }
         }
     }
@@ -137,7 +149,7 @@ class AuthViewModel @Inject constructor(private val authRepository: IAuthReposit
         }
     }
 
-    fun resetAuthState() {
-        _uiState.update { it.copy(authState = ViewState.Idle) }
+    fun unblockUi() {
+        _uiState.update { it.copy(isUiBlocked = false) }
     }
 }

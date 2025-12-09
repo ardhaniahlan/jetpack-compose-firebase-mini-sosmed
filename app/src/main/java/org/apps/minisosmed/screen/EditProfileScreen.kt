@@ -157,8 +157,8 @@ fun EditProfileScreen(
 @Composable
 fun EditProfileTopBar(
     onBackClick: () -> Unit,
+    enabled: Boolean = true,
     onSaveEdit: () -> Unit,
-    enabled: Boolean = true
 ) {
     TopAppBar(
         title = {

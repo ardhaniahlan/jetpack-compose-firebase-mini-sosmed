@@ -110,8 +110,8 @@ fun LoginScreenContent(
     onPasswordChange: (String) -> Unit,
     onVisibilityChange : () -> Unit,
     onLoginAccountClick: () -> Unit,
+    enabled: Boolean = true,
     onRegisterClick: () -> Unit,
-    enabled: Boolean = true
 ) {
 
     Column(

@@ -115,8 +115,8 @@ fun RegisterScreenContent(
     onConfirmPasswordChange: (String) -> Unit,
     onVisibilityChange: () -> Unit,
     onCreateAccountClick: () -> Unit,
+    enabled: Boolean = true,
     onLoginClick: () -> Unit,
-    enabled: Boolean = true
 ){
     Column(
         modifier = Modifier.fillMaxSize(),

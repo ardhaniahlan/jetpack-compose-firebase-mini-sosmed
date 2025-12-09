@@ -235,8 +235,8 @@ fun ProfileScreen(
 @Composable
 fun ProfileScreenTopBar(
     onEditClick: () -> Unit,
+    isCurrentUser: Boolean,
     onLogoutClick: () -> Unit,
-    isCurrentUser: Boolean
 ) {
     TopAppBar(
         title = {
@@ -279,8 +279,8 @@ fun ProfileScreenTopBar(
 fun ProfileScreenContent(
     user: User,
     postsState: ViewState<List<Post>>,
-    onMessageClick: () -> Unit,
     isCurrentUser: Boolean,
+    onMessageClick: () -> Unit,
     onEditPost: (Post) -> Unit,
     onDeleteClick: (String) -> Unit,
     onShowComments: (String) -> Unit,
